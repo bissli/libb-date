@@ -35,15 +35,22 @@ logger = logging.getLogger(__name__)
 __all__ = [
     'Date',
     'DateTime',
+    'DateRange',
     'Time',
     'WeekDay',
     'now',
     'today',
     'parse',
     'LCL',
+    'timezone',
     'expect_native_timezone',
     'expect_utc_timezone',
-    'timezone'
+    'prefer_native_timezone',
+    'prefer_utc_timezone',
+    'expect_date',
+    'expect_datetime',
+    'Entity',
+    'NYSE'
     ]
 
 
