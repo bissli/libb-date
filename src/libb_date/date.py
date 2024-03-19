@@ -470,7 +470,11 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
     @expect_date
     def __new__(cls, *args, **kwargs):
         """
+        >>> Date(2022, 1, 1)
+        Date(2022, 1, 1)
         >>> Date(datetime.date(2022, 1, 1))
+        Date(2022, 1, 1)
+        >>> Date(Date(2022, 1, 1))
         Date(2022, 1, 1)
 
         >>> d = Date(None)
@@ -495,7 +499,7 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
     def to_string(self, fmt: str) -> str:
         """Format cleaner https://stackoverflow.com/a/2073189.
 
-        >>> Date(datetime.date(2022, 1, 5)).to_string('%-m/%-d/%Y')
+        >>> Date(2022, 1, 5).to_string('%-m/%-d/%Y')
         '1/5/2022'
         """
         return self.strftime(fmt.replace('%-', '%#') if os.name == 'nt' else fmt)
@@ -507,7 +511,7 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         fmt: str = None,
         raise_err: bool = False,
         shortcodes: bool = True
-    ) -> Optional[datetime.date]:
+    ) -> Optional[Self]:
         """Convert a string to a date handling many different formats.
 
         previous business day accessed with 'P'
@@ -527,7 +531,7 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         Date(2006, 6, 23)
 
         m[/-]d          6/23
-        >>> Date.parse('6/23') == datetime.date(pendulum.today().year, 6, 23)
+        >>> Date.parse('6/23') == Date(today().year, 6, 23)
         True
 
         yyyy-mm-dd      2006-6-23
@@ -561,14 +565,14 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         >>> Date.parse('Oct. 24, 2007', fmt='%b. %d, %Y')
         Date(2007, 10, 24)
 
-        >>> Date.parse('Yesterday') == pendulum.today().subtract(days=1).date()
+        >>> Date.parse('Yesterday') == now().subtract(days=1).date()
         True
-        >>> Date.parse('TODAY') == pendulum.today().date()
+        >>> Date.parse('TODAY') == today()
         True
         >>> Date.parse('Jan. 13, 2014')
         Date(2014, 1, 13)
 
-        >>> Date.parse('March') == datetime.date(pendulum.today().year, 3, pendulum.today().day)
+        >>> Date.parse('March') == Date(today().year, 3, today().day)
         True
 
         >>> Date.parse(np.datetime64('2000-01', 'D'))
@@ -698,15 +702,15 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         """Week number 1-52 following ISO week-numbering
 
         Standard weeks
-        >>> Date(datetime.date(2023, 1, 2)).isoweek()
+        >>> Date(2023, 1, 2).isoweek()
         1
-        >>> Date(datetime.date(2023, 4, 27)).isoweek()
+        >>> Date(2023, 4, 27).isoweek()
         17
-        >>> Date(datetime.date(2023, 12, 31)).isoweek()
+        >>> Date(2023, 12, 31).isoweek()
         52
 
         Belongs to week of previous year
-        >>> Date(datetime.date(2023, 1, 1)).isoweek()
+        >>> Date(2023, 1, 1).isoweek()
         52
         """
         with contextlib.suppress(Exception):
@@ -726,17 +730,17 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         1/1/2015 -> Thursday (New Year's Day)
         2/1/2015 -> Sunday
 
-        >>> Date(datetime.date(2015, 1, 1)).nearest_start_of_month()
+        >>> Date(2015, 1, 1).nearest_start_of_month()
         Date(2015, 1, 1)
-        >>> Date(datetime.date(2015, 1, 15)).nearest_start_of_month()
+        >>> Date(2015, 1, 15).nearest_start_of_month()
         Date(2015, 1, 1)
-        >>> Date(datetime.date(2015, 1, 15)).business().nearest_start_of_month()
+        >>> Date(2015, 1, 15).business().nearest_start_of_month()
         Date(2015, 1, 2)
-        >>> Date(datetime.date(2015, 1, 16)).nearest_start_of_month()
+        >>> Date(2015, 1, 16).nearest_start_of_month()
         Date(2015, 2, 1)
-        >>> Date(datetime.date(2015, 1, 31)).nearest_start_of_month()
+        >>> Date(2015, 1, 31).nearest_start_of_month()
         Date(2015, 2, 1)
-        >>> Date(datetime.date(2015, 1, 31)).business().nearest_start_of_month()
+        >>> Date(2015, 1, 31).business().nearest_start_of_month()
         Date(2015, 2, 2)
         """
         _business = self._business
@@ -757,17 +761,17 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         12/31/2014 -> Wednesday
         1/31/2015 -> Saturday
 
-        >>> Date(datetime.date(2015, 1, 1)).nearest_end_of_month()
+        >>> Date(2015, 1, 1).nearest_end_of_month()
         Date(2014, 12, 31)
-        >>> Date(datetime.date(2015, 1, 15)).nearest_end_of_month()
+        >>> Date(2015, 1, 15).nearest_end_of_month()
         Date(2014, 12, 31)
-        >>> Date(datetime.date(2015, 1, 15)).business().nearest_end_of_month()
+        >>> Date(2015, 1, 15).business().nearest_end_of_month()
         Date(2014, 12, 31)
-        >>> Date(datetime.date(2015, 1, 16)).nearest_end_of_month()
+        >>> Date(2015, 1, 16).nearest_end_of_month()
         Date(2015, 1, 31)
-        >>> Date(datetime.date(2015, 1, 31)).nearest_end_of_month()
+        >>> Date(2015, 1, 31).nearest_end_of_month()
         Date(2015, 1, 31)
-        >>> Date(datetime.date(2015, 1, 31)).business().nearest_end_of_month()
+        >>> Date(2015, 1, 31).business().nearest_end_of_month()
         Date(2015, 1, 30)
         """
         _business = self._business
@@ -785,9 +789,9 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
     def next_relative_date_of_week_by_day(self, day='MO'):
         """Get next relative day of week by relativedelta code
 
-        >>> Date(datetime.datetime(2020, 5, 18)).next_relative_date_of_week_by_day('SU')
+        >>> Date(2020, 5, 18).next_relative_date_of_week_by_day('SU')
         Date(2020, 5, 24)
-        >>> Date(datetime.datetime(2020, 5, 24)).next_relative_date_of_week_by_day('SU')
+        >>> Date(2020, 5, 24).next_relative_date_of_week_by_day('SU')
         Date(2020, 5, 24)
         """
         if self.weekday() == day_obj.get(day):
@@ -797,13 +801,13 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
     def weekday_or_previous_friday(self):
         """Return the date if it is a weekday, else previous Friday
 
-        >>> Date(datetime.date(2019, 10, 6)).weekday_or_previous_friday() # Sunday
+        >>> Date(2019, 10, 6).weekday_or_previous_friday() # Sunday
         Date(2019, 10, 4)
-        >>> Date(datetime.date(2019, 10, 5)).weekday_or_previous_friday() # Saturday
+        >>> Date(2019, 10, 5).weekday_or_previous_friday() # Saturday
         Date(2019, 10, 4)
-        >>> Date(datetime.date(2019, 10, 4)).weekday_or_previous_friday() # Friday
+        >>> Date(2019, 10, 4).weekday_or_previous_friday() # Friday
         Date(2019, 10, 4)
-        >>> Date(datetime.date(2019, 10, 3)).weekday_or_previous_friday() # Thursday
+        >>> Date(2019, 10, 3).weekday_or_previous_friday() # Thursday
         Date(2019, 10, 3)
         """
         dnum = self.weekday()
@@ -814,13 +818,13 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
     def lookback(self, unit='last') -> Self:
         """Date back based on lookback string, ie last, week, month.
 
-        >>> Date(datetime.date(2018, 12, 7)).business().lookback('last')
+        >>> Date(2018, 12, 7).business().lookback('last')
         Date(2018, 12, 6)
-        >>> Date(datetime.date(2018, 12, 7)).business().lookback('day')
+        >>> Date(2018, 12, 7).business().lookback('day')
         Date(2018, 12, 6)
-        >>> Date(datetime.date(2018, 12, 7)).business().lookback('week')
+        >>> Date(2018, 12, 7).business().lookback('week')
         Date(2018, 11, 30)
-        >>> Date(datetime.date(2018, 12, 7)).business().lookback('month')
+        >>> Date(2018, 12, 7).business().lookback('month')
         Date(2018, 11, 7)
         """
         def _lookback(years=0, months=0, weeks=0, days=0):
@@ -888,7 +892,13 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
     @expect_datetime
     def __new__(cls, *args, **kwargs):
         """
+        >>> DateTime(2022, 1, 1)
+        DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
+        >>> DateTime(2022, 1, 1, 0, 0, 0)
+        DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
         >>> DateTime(datetime.date(2022, 1, 1))
+        DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
+        >>> DateTime(Date(2022, 1, 1))
         DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
 
         >>> d = DateTime(None)
@@ -901,10 +911,10 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
             thedate = datetime_to_tuple(pendulum.today())
         if len(args) == 1:
             thedate = datetime_to_tuple(args[0] or pendulum.today())
-        if len(args) == 2:
-            raise ValueError(f'Incompatible dates: {args}')
         if len(args) >= 3:
             thedate = args
+            if 'tzinfo' not in kwargs:
+                kwargs['tzinfo'] = LCL
         d = super(pendulum.DateTime, cls).__new__(cls, *thedate, **kwargs)
         return d
 
