@@ -1031,7 +1031,7 @@ def now():
     return DateTime(pendulum.today())
 
 
-class Time:
+class Time(pendulum.Time):
 
     @prefer_utc_timezone
     @staticmethod
@@ -1471,10 +1471,10 @@ def overlap_days(range_one, range_two, days=False):
     otherwise we just return if it overlaps True/False
     poached from Raymond Hettinger http://stackoverflow.com/a/9044111
 
-    >>> date1 = datetime.date(2016, 3, 1)
-    >>> date2 = datetime.date(2016, 3, 2)
-    >>> date3 = datetime.date(2016, 3, 29)
-    >>> date4 = datetime.date(2016, 3, 30)
+    >>> date1 = Date(2016, 3, 1)
+    >>> date2 = Date(2016, 3, 2)
+    >>> date3 = Date(2016, 3, 29)
+    >>> date4 = Date(2016, 3, 30)
 
     >>> assert overlap_days((date1, date3), (date2, date4))
     >>> assert overlap_days((date2, date4), (date1, date3))
