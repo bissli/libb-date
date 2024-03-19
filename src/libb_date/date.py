@@ -113,8 +113,8 @@ def is_datetimeish(x):
 
 
 def expect(func, typ: Type[datetime.date], exclkw: bool = False) -> Callable:
-    """Decorator to force input type of date/datetime inputs"""
-
+    """Decorator to force input type of date/datetime inputs
+    """
     @wraps(func)
     def wrapper(*args, **kwargs):
         args = list(args)
@@ -134,7 +134,6 @@ def expect(func, typ: Type[datetime.date], exclkw: bool = False) -> Callable:
                     if typ == datetime.date and not is_dateish(v):
                         kwargs[k] = Date.parse(v)
         return func(*args, **kwargs)
-
     return wrapper
 
 
@@ -142,34 +141,48 @@ expect_date = partial(expect, typ=datetime.date)
 expect_datetime = partial(expect, typ=datetime.datetime)
 
 
-def store_entity(func):
+def type_class(typ, obj):
+    if typ:
+        return typ
+    if obj.__class__ in (datetime.datetime, pendulum.DateTime, DateTime):
+        return DateTime
+    if obj.__class__ in (datetime.date, pendulum.Date, Date):
+        return Date
+    raise ValueError('Unknown type in Date/DateTime method')
+
+
+def store_entity(func=None, *, typ=None):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         _entity = self._entity
-        d = self.__class__(func(self, *args, **kwargs))
+        d = type_class(typ, self)(func(self, *args, **kwargs))
         d._entity = _entity
         return d
+    if func is None:
+        return partial(store_entity, typ=typ)
     return wrapper
 
 
-def store_both(func):
+def store_both(func=None, *, typ=None):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         _entity = self._entity
         _business = self._business
-        d = self.__class__(func(self, *args, **kwargs))
+        d = type_class(typ, self)(func(self, *args, **kwargs))
         d._entity = _entity
         d._business = _business
         return d
+    if func is None:
+        return partial(store_both, typ=typ)
     return wrapper
 
 
-def prefer_utc_timezone(f, force:bool = False):
+def prefer_utc_timezone(func, force:bool = False):
     """Return datetime as UTC.
     """
-    @wraps(f)
+    @wraps(func)
     def wrapper(*args, **kwargs):
-        d = f(*args, **kwargs)
+        d = func(*args, **kwargs)
         if not d:
             return
         if not force and d.tzinfo:
@@ -178,12 +191,12 @@ def prefer_utc_timezone(f, force:bool = False):
     return wrapper
 
 
-def prefer_native_timezone(f, force:bool = False):
+def prefer_native_timezone(func, force:bool = False):
     """Return datetime as native.
     """
-    @wraps(f)
+    @wraps(func)
     def wrapper(*args, **kwargs):
-        d = f(*args, **kwargs)
+        d = func(*args, **kwargs)
         if not d:
             return
         if not force and d.tzinfo:
@@ -499,8 +512,8 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
             thedate = args[0], args[1], args[2]
         if len(args) == 2 or len(args) > 3:
             raise ValueError(f'Incompatible dates: {args}')
-        d = super(pendulum.Date, cls).__new__(cls, *thedate, **kwargs)
-        return d
+        self = super(pendulum.Date, cls).__new__(cls, *thedate, **kwargs)
+        return self
 
     def to_string(self, fmt: str) -> str:
         """Format cleaner https://stackoverflow.com/a/2073189.
@@ -888,8 +901,8 @@ def today():
 
 class Time(pendulum.Time):
 
-    @prefer_utc_timezone
     @staticmethod
+    @prefer_utc_timezone
     def parse(s, fmt=None, raise_err=False):
         """Convert a string to a time handling many formats::
 
@@ -1026,33 +1039,8 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
             thedate = args
             if not _has_tzinfo(*args, **kwargs):
                 kwargs['tzinfo'] = LCL
-        d = super(pendulum.DateTime, cls).__new__(cls, *thedate, **kwargs)
-        return d
-
-    @classmethod
-    def combine(cls, date: Date, time: Time, tzinfo: datetime.tzinfo | None = None) -> Self:
-        """Wrap pendulum.DateTime.combine
-        >>> date = Date(2000, 1, 1)
-        >>> time = Time.parse('9:30 AM')
-        >>> d = DateTime.combine(date, time)
-        >>> assert isinstance(d, DateTime)
-        >>> assert d._business is False
-        >>> d
-        DateTime(2000, 1, 1, 9, 30, 0, tzinfo=Timezone('UTC'))
-        """
-        return DateTime(pendulum.DateTime.combine(date, time, tzinfo))
-
-    @store_entity
-    def replace(self, **kw):
-        """Wrap pendulum.DateTime.replace
-        """
-        return self._pendulum.replace(self, **kw)
-
-    @store_entity
-    def in_timezone(self, tz):
-        """Wrap pendulum.DateTime.in_timezone
-        """
-        return self._pendulum.in_timezone(self, tz)
+        self = super(pendulum.DateTime, cls).__new__(cls, *thedate, **kwargs)
+        return self
 
     def epoch(self):
         """Translate a datetime object into unix seconds since epoch
@@ -1553,6 +1541,18 @@ LOCATION:{location}
 END:VEVENT
 END:VCALENDAR
     """
+
+
+# apply any missing Date functions
+for func in ('closest', 'farthest', 'nth_of', 'average', 'fromtimestamp',
+             'fromordinal', 'replace', 'today'):
+    setattr(DateTime, func, store_entity(getattr(pendulum.Date, func), typ=Date))
+
+# apply any missing DateTime functions
+for func in ('astimezone', 'combine', 'date', 'fromordinal',
+             'in_timezone', 'in_tz', 'instance', 'now', 'replace',
+             'strptime', 'time', 'today', 'utcfromtimestamp', 'utcnow'):
+    setattr(DateTime, func, store_entity(getattr(pendulum.DateTime, func), typ=DateTime))
 
 
 if __name__ == '__main__':

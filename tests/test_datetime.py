@@ -1,6 +1,7 @@
 import pytest
-from asserts import assert_equal, assert_false, assert_not_equal, assert_true
-from libb_date.date import DateTime
+from asserts import assert_true, assert_equal, assert_false, assert_not_equal
+from pendulum.tz import Timezone
+from libb_date.date import Date, Time, DateTime
 
 
 def test_add():
@@ -36,6 +37,16 @@ def test_is_business_day():
     assert_false(d.is_business_day())
     assert_true(d.add(days=2).is_business_day())
     assert_true(d.subtract(days=2).business().add(days=1).is_business_day())
+
+
+def test_combine():
+
+    date = Date(2000, 1, 1)
+    time = Time.parse('9:30 AM')
+    d = DateTime.combine(date, time)
+    assert isinstance(d, DateTime)
+    assert d._business is False
+    assert_equal(d, DateTime(2000, 1, 1, 9, 30, 0, tzinfo=Timezone('UTC')))
 
 
 if __name__ == '__main__':
