@@ -239,68 +239,66 @@ class NYSE(Entity):
         return {d.date() for d in map(pd.to_datetime, NYSE.calendar.holidays().holidays)}
 
 
-class Business:
+class BusinessMixin:
 
-    @staticmethod
-    def business_open(thedate, entity: Type[NYSE] = NYSE) -> bool:
+    def business_open(self) -> bool:
         """Business open
 
-        >>> thedate = datetime.date(2021, 4, 19) # Monday
-        >>> Business.business_open(thedate)
+        >>> thedate = Date(2021, 4, 19) # Monday
+        >>> thedate.business_open()
         True
-        >>> thedate = datetime.date(2021, 4, 17) # Saturday
-        >>> Business.business_open(thedate)
+        >>> thedate = Date(2021, 4, 17) # Saturday
+        >>> thedate.business_open()
         False
-        >>> thedate = datetime.date(2021, 1, 18) # MLK Day
-        >>> Business.business_open(thedate)
+        >>> thedate = Date(2021, 1, 18) # MLK Day
+        >>> thedate.business_open()
         False
         """
-        return Business.is_business_day(thedate, entity)
+        return self.is_business_day()
+
+    def is_business_day(self) -> bool:
+        """Is business date.
+
+        >>> thedate = Date(2021, 4, 19) # Monday
+        >>> thedate.is_business_day()
+        True
+        >>> thedate = Date(2021, 4, 17) # Saturday
+        >>> thedate.is_business_day()
+        False
+        >>> thedate = Date(2021, 1, 18) # MLK Day
+        >>> thedate.is_business_day()
+        False
+        >>> thedate = Date(2021, 11, 25) # Thanksgiving
+        >>> thedate.is_business_day()
+        False
+        >>> thedate = Date(2021, 11, 26) # Day after ^
+        >>> thedate.is_business_day()
+        True
+        """
+        return self in self._entity.business_days()
 
     @staticmethod
     def business_hours(enddate, begdate=None, entity: Type[NYSE] = NYSE):
         """Business hours
 
-        >>> thedate = datetime.date(2023, 1, 5)
-        >>> Business.business_hours(thedate)
+        >>> thedate = Date(2023, 1, 5)
+        >>> BusinessMixin.business_hours(thedate)
         (... 9, 30, ... 16, 0, ...)
 
-        >>> thedate = datetime.date(2023, 7, 3)
-        >>> Business.business_hours(thedate)
+        >>> thedate = Date(2023, 7, 3)
+        >>> BusinessMixin.business_hours(thedate)
         (... 9, 30, ... 13, 0, ...)
 
-        >>> thedate = datetime.date(2023, 11, 24)
-        >>> Business.business_hours(thedate)
+        >>> thedate = Date(2023, 11, 24)
+        >>> BusinessMixin.business_hours(thedate)
         (... 9, 30, ... 13, 0, ...)
 
-        >>> thedate = datetime.date(2023, 11, 25)
-        >>> Business.business_hours(thedate)
+        >>> thedate = Date(2023, 11, 25)
+        >>> BusinessMixin.business_hours(thedate)
         (None, None)
         """
         return entity.business_hours(begdate or enddate, enddate)\
             .get(enddate, (None, None))
-
-    @staticmethod
-    def is_business_day(thedate, entity: Type[NYSE] = NYSE) -> bool:
-        """Is business date.
-
-        >>> thedate = datetime.date(2021, 4, 19) # Monday
-        >>> Business.is_business_day(thedate)
-        True
-        >>> thedate = datetime.date(2021, 4, 17) # Saturday
-        >>> Business.is_business_day(thedate)
-        False
-        >>> thedate = datetime.date(2021, 1, 18) # MLK Day
-        >>> Business.is_business_day(thedate)
-        False
-        >>> thedate = datetime.date(2021, 11, 25) # Thanksgiving
-        >>> Business.is_business_day(thedate)
-        False
-        >>> thedate = datetime.date(2021, 11, 26) # Day after ^
-        >>> Business.is_business_day(thedate)
-        True
-        """
-        return thedate in entity.business_days()
 
 
 def parse():
@@ -322,7 +320,7 @@ class PendulumDateMixin:
                 self = self._pendulum.add(self, days=1)
             except OverflowError:
                 break
-            if Business.is_business_day(self, self._entity):
+            if self.is_business_day():
                 days -= 1
         return self
 
@@ -335,7 +333,7 @@ class PendulumDateMixin:
                 self = self._pendulum.add(self, days=-1)
             except OverflowError:
                 break
-            if Business.is_business_day(self, self._entity):
+            if self.is_business_day():
                 days -= 1
         return self
 
@@ -454,7 +452,7 @@ class PendulumDateMixin:
         return self
 
 
-class Date(PendulumDateMixin, pendulum.Date):
+class Date(BusinessMixin, PendulumDateMixin, pendulum.Date):
     """Inherits and wraps pendulum.Date
     """
 
@@ -882,7 +880,7 @@ def datetime_to_tuple(obj: pendulum.DateTime):
             obj.microsecond, obj.tzinfo)
 
 
-class DateTime(PendulumDateMixin, pendulum.DateTime):
+class DateTime(BusinessMixin, PendulumDateMixin, pendulum.DateTime):
     """Inherits and wraps pendulum.DateTime
     """
 
@@ -1196,7 +1194,7 @@ class DateRange:
         [True, True, True, False, True, False, False]
         """
         for thedate in self.series():
-            yield Business.is_business_day(thedate, self._entity)
+            yield thedate.is_business_day()
 
     def series(self, window=0):
         """Get a series of datetime.date objects.
@@ -1250,7 +1248,7 @@ class DateRange:
         thedate = since
         while thedate <= until:
             if _business:
-                if Business.is_business_day(thedate, self._entity):
+                if thedate.is_business_day():
                     yield thedate
             else:
                 yield thedate
