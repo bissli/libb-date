@@ -140,7 +140,7 @@ def store_entity(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         _entity = self._entity
-        d = Date(func(self, *args, **kwargs))
+        d = self.__class__(func(self, *args, **kwargs))
         d._entity = _entity
         return d
     return wrapper
@@ -151,7 +151,7 @@ def store_both(func):
     def wrapper(self, *args, **kwargs):
         _entity = self._entity
         _business = self._business
-        d = Date(func(self, *args, **kwargs))
+        d = self.__class__(func(self, *args, **kwargs))
         d._entity = _entity
         d._business = _business
         return d
@@ -239,116 +239,24 @@ class NYSE(Entity):
         return {d.date() for d in map(pd.to_datetime, NYSE.calendar.holidays().holidays)}
 
 
-class BusinessMixin:
-
-    def business_open(self) -> bool:
-        """Business open
-
-        >>> thedate = Date(2021, 4, 19) # Monday
-        >>> thedate.business_open()
-        True
-        >>> thedate = Date(2021, 4, 17) # Saturday
-        >>> thedate.business_open()
-        False
-        >>> thedate = Date(2021, 1, 18) # MLK Day
-        >>> thedate.business_open()
-        False
-        """
-        return self.is_business_day()
-
-    def is_business_day(self) -> bool:
-        """Is business date.
-
-        >>> thedate = Date(2021, 4, 19) # Monday
-        >>> thedate.is_business_day()
-        True
-        >>> thedate = Date(2021, 4, 17) # Saturday
-        >>> thedate.is_business_day()
-        False
-        >>> thedate = Date(2021, 1, 18) # MLK Day
-        >>> thedate.is_business_day()
-        False
-        >>> thedate = Date(2021, 11, 25) # Thanksgiving
-        >>> thedate.is_business_day()
-        False
-        >>> thedate = Date(2021, 11, 26) # Day after ^
-        >>> thedate.is_business_day()
-        True
-        """
-        return self in self._entity.business_days()
-
-    @staticmethod
-    def business_hours(enddate, begdate=None, entity: Type[NYSE] = NYSE):
-        """Business hours
-
-        >>> thedate = Date(2023, 1, 5)
-        >>> BusinessMixin.business_hours(thedate)
-        (... 9, 30, ... 16, 0, ...)
-
-        >>> thedate = Date(2023, 7, 3)
-        >>> BusinessMixin.business_hours(thedate)
-        (... 9, 30, ... 13, 0, ...)
-
-        >>> thedate = Date(2023, 11, 24)
-        >>> BusinessMixin.business_hours(thedate)
-        (... 9, 30, ... 13, 0, ...)
-
-        >>> thedate = Date(2023, 11, 25)
-        >>> BusinessMixin.business_hours(thedate)
-        (None, None)
-        """
-        return entity.business_hours(begdate or enddate, enddate)\
-            .get(enddate, (None, None))
-
-
 def parse():
     """Generic parser that guesses type
     """
-    raise NotImplemented('Generic parser not implemented, use Date or DateTime parsers')
+    raise NotImplementedError('Generic parser not implemented, use Date or DateTime parsers')
 
 
-class PendulumDateMixin:
+class PendulumBusinessDateMixin:
 
     _pendulum = pendulum.Date
+    _entity: Type[NYSE] = NYSE
+    _business: bool = False
 
-    @store_both
-    def _business_next(self, days=0):
-        """Helper for cycling through N business day"""
-        days = abs(days)
-        while days > 0:
-            try:
-                self = self._pendulum.add(self, days=1)
-            except OverflowError:
-                break
-            if self.is_business_day():
-                days -= 1
+    def business(self) -> Self:
+        self._business = True
         return self
 
-    @store_both
-    def _business_previous(self, days=0):
-        """Helper for cycling through N business day"""
-        days = abs(days)
-        while days > 0:
-            try:
-                self = self._pendulum.add(self, days=-1)
-            except OverflowError:
-                break
-            if self.is_business_day():
-                days -= 1
-        return self
-
-    @store_entity
-    def _business_or_next(self):
-        self._business = False
-        self = self._pendulum.subtract(self, days=1)
-        self = self._business_next(days=1)
-        return self
-
-    @store_entity
-    def _business_or_previous(self):
-        self._business = False
-        self = self._pendulum.add(self, days=1)
-        self = self._business_previous(days=1)
+    def entity(self, e: Type[NYSE] = NYSE) -> Self:
+        self._entity = e
         return self
 
     @store_entity
@@ -451,14 +359,113 @@ class PendulumDateMixin:
             self = self._business_or_previous()
         return self
 
+    @expect_date
+    def business_open(self) -> bool:
+        """Business open
 
-class Date(BusinessMixin, PendulumDateMixin, pendulum.Date):
+        >>> thedate = Date(2021, 4, 19) # Monday
+        >>> thedate.business_open()
+        True
+        >>> thedate = Date(2021, 4, 17) # Saturday
+        >>> thedate.business_open()
+        False
+        >>> thedate = Date(2021, 1, 18) # MLK Day
+        >>> thedate.business_open()
+        False
+        """
+        return self.is_business_day()
+
+    @expect_date
+    def is_business_day(self) -> bool:
+        """Is business date.
+
+        >>> thedate = Date(2021, 4, 19) # Monday
+        >>> thedate.is_business_day()
+        True
+        >>> thedate = Date(2021, 4, 17) # Saturday
+        >>> thedate.is_business_day()
+        False
+        >>> thedate = Date(2021, 1, 18) # MLK Day
+        >>> thedate.is_business_day()
+        False
+        >>> thedate = Date(2021, 11, 25) # Thanksgiving
+        >>> thedate.is_business_day()
+        False
+        >>> thedate = Date(2021, 11, 26) # Day after ^
+        >>> thedate.is_business_day()
+        True
+        """
+        return self in self._entity.business_days()
+
+    @expect_date
+    def business_hours(self):
+        """Business hours
+
+        >>> thedate = Date(2023, 1, 5)
+        >>> thedate.business_hours()
+        (... 9, 30, ... 16, 0, ...)
+
+        >>> thedate = Date(2023, 7, 3)
+        >>> thedate.business_hours()
+        (... 9, 30, ... 13, 0, ...)
+
+        >>> thedate = Date(2023, 11, 24)
+        >>> thedate.business_hours()
+        (... 9, 30, ... 13, 0, ...)
+
+        >>> thedate = Date(2023, 11, 25)
+        >>> thedate.business_hours()
+        ()
+        """
+        return self._entity.business_hours(self, self)\
+            .get(self, ())
+
+    @store_both
+    def _business_next(self, days=0):
+        """Helper for cycling through N business day"""
+        days = abs(days)
+        while days > 0:
+            try:
+                self = self._pendulum.add(self, days=1)
+            except OverflowError:
+                break
+            if self.is_business_day():
+                days -= 1
+        return self
+
+    @store_both
+    def _business_previous(self, days=0):
+        """Helper for cycling through N business day"""
+        days = abs(days)
+        while days > 0:
+            try:
+                self = self._pendulum.add(self, days=-1)
+            except OverflowError:
+                break
+            if self.is_business_day():
+                days -= 1
+        return self
+
+    @store_entity
+    def _business_or_next(self):
+        self._business = False
+        self = self._pendulum.subtract(self, days=1)
+        self = self._business_next(days=1)
+        return self
+
+    @store_entity
+    def _business_or_previous(self):
+        self._business = False
+        self = self._pendulum.add(self, days=1)
+        self = self._business_previous(days=1)
+        return self
+
+
+class Date(PendulumBusinessDateMixin, pendulum.Date):
     """Inherits and wraps pendulum.Date
     """
 
     _pendulum = pendulum.Date
-    _entity: Type[NYSE] = NYSE
-    _business: bool = False
 
     @expect_date
     def __new__(cls, *args, **kwargs):
@@ -687,14 +694,6 @@ class Date(BusinessMixin, PendulumDateMixin, pendulum.Date):
         if raise_err:
             raise ValueError('Failed to parse date: %s', s)
 
-    def business(self) -> Self:
-        self._business = True
-        return self
-
-    def entity(self, e: Type[NYSE] = NYSE) -> Self:
-        self._entity = e
-        return self
-
     def isoweek(self):
         """Week number 1-52 following ISO week-numbering
 
@@ -880,13 +879,11 @@ def datetime_to_tuple(obj: pendulum.DateTime):
             obj.microsecond, obj.tzinfo)
 
 
-class DateTime(BusinessMixin, PendulumDateMixin, pendulum.DateTime):
+class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
     """Inherits and wraps pendulum.DateTime
     """
 
     _pendulum = pendulum.DateTime
-    _entity: Type[NYSE] = NYSE
-    _business: bool = False
 
     @expect_datetime
     def __new__(cls, *args, **kwargs):
