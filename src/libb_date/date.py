@@ -43,12 +43,19 @@ __all__ = [
     'LCL',
     'expect_native_timezone',
     'expect_utc_timezone',
+    'timezone'
     ]
 
+
+def timezone(name:str='US/Eastern'):
+    """Simple wrapper to convert name to timezone"""
+    return pendulum.tz.Timezone(name)
+
+
+UTC = timezone('UTC')
+GMT = timezone('GMT')
+EST = timezone('US/Eastern')
 LCL = pendulum.tz.Timezone(pendulum.tz.get_local_timezone().name)
-UTC = pendulum.tz.Timezone('UTC')
-GMT = pendulum.tz.Timezone('GMT')
-EST = pendulum.tz.Timezone('US/Eastern')
 
 
 class WeekDay(IntEnum):
