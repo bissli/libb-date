@@ -892,6 +892,102 @@ def today():
     return Date(pendulum.today().date())
 
 
+class Time(pendulum.Time):
+
+    @prefer_utc_timezone
+    @staticmethod
+    def parse(s, fmt=None, raise_err=False):
+        """Convert a string to a time handling many formats::
+
+            handle many time formats:
+            hh[:.]mm
+            hh[:.]mm am/pm
+            hh[:.]mm[:.]ss
+            hh[:.]mm[:.]ss[.,]uuu am/pm
+            hhmmss[.,]uuu
+            hhmmss[.,]uuu am/pm
+
+        >>> Time.parse('9:30')
+        Time(9, 30, 0, tzinfo=Timezone('UTC'))
+        >>> Time.parse('9:30:15')
+        Time(9, 30, 15, tzinfo=Timezone('UTC'))
+        >>> Time.parse('9:30:15.751')
+        Time(9, 30, 15, 751000, tzinfo=Timezone('UTC'))
+        >>> Time.parse('9:30 AM')
+        Time(9, 30, 0, tzinfo=Timezone('UTC'))
+        >>> Time.parse('9:30 pm')
+        Time(21, 30, 0, tzinfo=Timezone('UTC'))
+        >>> Time.parse('9:30:15.751 PM')
+        Time(21, 30, 15, 751000, tzinfo=Timezone('UTC'))
+        >>> Time.parse('0930')  # Date treats this as a date, careful!!
+        Time(9, 30, 0, tzinfo=Timezone('UTC'))
+        >>> Time.parse('093015')
+        Time(9, 30, 15, tzinfo=Timezone('UTC'))
+        >>> Time.parse('093015,751')
+        Time(9, 30, 15, 751000, tzinfo=Timezone('UTC'))
+        >>> Time.parse('0930 pm')
+        Time(21, 30, 0, tzinfo=Timezone('UTC'))
+        >>> Time.parse('093015,751 PM')
+        Time(21, 30, 15, 751000, tzinfo=Timezone('UTC'))
+        """
+
+        def seconds(m):
+            try:
+                return int(m.group('s'))
+            except Exception:
+                return 0
+
+        def micros(m):
+            try:
+                return int(m.group('u'))
+            except Exception:
+                return 0
+
+        def is_pm(m):
+            try:
+                return m.group('ap').lower() == 'pm'
+            except Exception:
+                return False
+
+        if not s:
+            if raise_err:
+                raise ValueError('Empty value')
+            return
+
+        if isinstance(s, datetime.datetime):
+            return pendulum.instance(s).time()
+
+        if isinstance(s, datetime.time):
+            return pendulum.instance(s)
+
+        if fmt:
+            return pendulum.Time(*time.strptime(s, fmt)[3:6])
+
+        exps = (
+            r'^(?P<h>\d{1,2})[:.](?P<m>\d{2})([:.](?P<s>\d{2})([.,](?P<u>\d+))?)?( +(?P<ap>[aApP][mM]))?$',
+            r'^(?P<h>\d{2})(?P<m>\d{2})((?P<s>\d{2})([.,](?P<u>\d+))?)?( +(?P<ap>[aApP][mM]))?$',
+        )
+
+        for exp in exps:
+            if m := re.match(exp, s):
+                hh = int(m.group('h'))
+                mm = int(m.group('m'))
+                ss = seconds(m)
+                uu = micros(m)
+                if is_pm(m) and hh < 12:
+                    hh += 12
+                return pendulum.Time(hh, mm, ss, uu * 1000).replace(tzinfo=UTC)
+        logger.debug('Custom parsers failed, trying pendulum parser')
+
+        try:
+            return pendulum.parse(s, strict=False).time()
+        except (TypeError, ValueError):
+            pass
+
+        if raise_err:
+            raise ValueError('Failed to parse time: %s', s)
+
+
 def datetime_to_tuple(obj: pendulum.DateTime):
     return (obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second,
             obj.microsecond, obj.tzinfo)
@@ -932,11 +1028,18 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         d = super(pendulum.DateTime, cls).__new__(cls, *thedate, **kwargs)
         return d
 
-    def combine(self, d1, d2):
-        _entity = self._entity
-        d = DateTime(self._pendulum.combine(self, d1, e1))
-        d._entity = _entity
-        return d
+    @classmethod
+    def combine(cls, date: Date, time: Time, tzinfo: datetime.tzinfo | None = None) -> Self:
+        """Wrap pendulum combine
+        >>> date = Date(2000, 1, 1)
+        >>> time = Time.parse('9:30 AM')
+        >>> d = DateTime.combine(date, time)
+        >>> assert isinstance(d, DateTime)
+        >>> assert d._business is False
+        >>> d
+        DateTime(2000, 1, 1, 9, 30, 0, tzinfo=Timezone('UTC'))
+        """
+        return DateTime(pendulum.DateTime.combine(date, time, tzinfo))
 
     def epoch(self):
         """Translate a datetime object into unix seconds since epoch"""
@@ -1043,102 +1146,6 @@ def now():
     """Get current datetime
     """
     return DateTime(pendulum.today())
-
-
-class Time(pendulum.Time):
-
-    @prefer_utc_timezone
-    @staticmethod
-    def parse(s, fmt=None, raise_err=False):
-        """Convert a string to a time handling many formats::
-
-            handle many time formats:
-            hh[:.]mm
-            hh[:.]mm am/pm
-            hh[:.]mm[:.]ss
-            hh[:.]mm[:.]ss[.,]uuu am/pm
-            hhmmss[.,]uuu
-            hhmmss[.,]uuu am/pm
-
-        >>> Time.parse('9:30')
-        Time(9, 30, 0, tzinfo=Timezone('UTC'))
-        >>> Time.parse('9:30:15')
-        Time(9, 30, 15, tzinfo=Timezone('UTC'))
-        >>> Time.parse('9:30:15.751')
-        Time(9, 30, 15, 751000, tzinfo=Timezone('UTC'))
-        >>> Time.parse('9:30 AM')
-        Time(9, 30, 0, tzinfo=Timezone('UTC'))
-        >>> Time.parse('9:30 pm')
-        Time(21, 30, 0, tzinfo=Timezone('UTC'))
-        >>> Time.parse('9:30:15.751 PM')
-        Time(21, 30, 15, 751000, tzinfo=Timezone('UTC'))
-        >>> Time.parse('0930')  # Date treats this as a date, careful!!
-        Time(9, 30, 0, tzinfo=Timezone('UTC'))
-        >>> Time.parse('093015')
-        Time(9, 30, 15, tzinfo=Timezone('UTC'))
-        >>> Time.parse('093015,751')
-        Time(9, 30, 15, 751000, tzinfo=Timezone('UTC'))
-        >>> Time.parse('0930 pm')
-        Time(21, 30, 0, tzinfo=Timezone('UTC'))
-        >>> Time.parse('093015,751 PM')
-        Time(21, 30, 15, 751000, tzinfo=Timezone('UTC'))
-        """
-
-        def seconds(m):
-            try:
-                return int(m.group('s'))
-            except Exception:
-                return 0
-
-        def micros(m):
-            try:
-                return int(m.group('u'))
-            except Exception:
-                return 0
-
-        def is_pm(m):
-            try:
-                return m.group('ap').lower() == 'pm'
-            except Exception:
-                return False
-
-        if not s:
-            if raise_err:
-                raise ValueError('Empty value')
-            return
-
-        if isinstance(s, datetime.datetime):
-            return pendulum.instance(s).time()
-
-        if isinstance(s, datetime.time):
-            return pendulum.instance(s)
-
-        if fmt:
-            return pendulum.Time(*time.strptime(s, fmt)[3:6])
-
-        exps = (
-            r'^(?P<h>\d{1,2})[:.](?P<m>\d{2})([:.](?P<s>\d{2})([.,](?P<u>\d+))?)?( +(?P<ap>[aApP][mM]))?$',
-            r'^(?P<h>\d{2})(?P<m>\d{2})((?P<s>\d{2})([.,](?P<u>\d+))?)?( +(?P<ap>[aApP][mM]))?$',
-        )
-
-        for exp in exps:
-            if m := re.match(exp, s):
-                hh = int(m.group('h'))
-                mm = int(m.group('m'))
-                ss = seconds(m)
-                uu = micros(m)
-                if is_pm(m) and hh < 12:
-                    hh += 12
-                return pendulum.Time(hh, mm, ss, uu * 1000).replace(tzinfo=UTC)
-        logger.debug('Custom parsers failed, trying pendulum parser')
-
-        try:
-            return pendulum.parse(s, strict=False).time()
-        except (TypeError, ValueError):
-            pass
-
-        if raise_err:
-            raise ValueError('Failed to parse time: %s', s)
 
 
 class DateRange:
