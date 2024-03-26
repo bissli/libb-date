@@ -15,6 +15,9 @@ def test_add():
     assert_equal(d.business().add(days=1), DateTime(2000, 1, 3, 12, 30))
     assert_not_equal(d.business().add(days=1), DateTime(2000, 1, 3, 12, 31))
 
+    d = DateTime(2000, 1, 1, 12, 30)
+    assert_equal(d.add(days=1, hours=1, minutes=1), DateTime(2000, 1, 2, 13, 31))
+
 
 def test_subtract():
     """Testing that subtract function preserves DateTime object
@@ -26,6 +29,9 @@ def test_subtract():
     d = DateTime(2000, 1, 4, 12, 30)
     assert_equal(d.business().subtract(days=1), DateTime(2000, 1, 3, 12, 30))
     assert_not_equal(d.business().subtract(days=1), DateTime(2000, 1, 3, 12, 31))
+
+    d = DateTime(2000, 1, 4, 12, 30)
+    assert_equal(d.subtract(days=1, hours=1, minutes=1), DateTime(2000, 1, 3, 11, 29))
 
 
 def test_is_business_day():

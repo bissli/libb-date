@@ -279,7 +279,7 @@ class PendulumBusinessDateMixin:
         return self
 
     @store_entity
-    def add(self, years: int=0, months: int=0, weeks: int=0, days: int=0) -> Self:
+    def add(self, years: int=0, months: int=0, weeks: int=0, days: int=0, **kwargs) -> Self:
         """Add wrapper
         If not business use Pendulum
         If business assume only days (for now) and use local logic
@@ -292,10 +292,10 @@ class PendulumBusinessDateMixin:
                 self = self._business_next(days=1)
                 days -= 1
             return self
-        return self._pendulum.add(self, years, months, weeks, days)
+        return self._pendulum.add(self, years, months, weeks, days, **kwargs)
 
     @store_entity
-    def subtract(self, years: int=0, months: int=0, weeks: int=0, days: int=0) -> Self:
+    def subtract(self, years: int=0, months: int=0, weeks: int=0, days: int=0, **kwargs) -> Self:
         """Subtract wrapper
         If not business use Pendulum
         If business assume only days (for now) and use local logic
@@ -308,7 +308,8 @@ class PendulumBusinessDateMixin:
                 self = self._business_previous(days=1)
                 days -= 1
             return self
-        return self._pendulum.add(self, -years, -months, -weeks, -days)
+        kwargs = {k: -1*v for k,v in kwargs.items()}
+        return self._pendulum.add(self, -years, -months, -weeks, -days, **kwargs)
 
     @store_entity
     def first_of(self, unit: str, day_of_week: WeekDay | None = None) -> Self:
