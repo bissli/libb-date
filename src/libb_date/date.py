@@ -1158,8 +1158,8 @@ class DateRange:
 
     @expect_date
     def __init__(self, begdate: Date=None, enddate: Date=None):
-        self.begdate = begdate
-        self.enddate = enddate
+        self.begdate = Date.parse(begdate)
+        self.enddate = Date.parse(enddate)
 
     def business(self) -> Self:
         self._business = True
