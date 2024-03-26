@@ -1151,6 +1151,10 @@ def now():
     return DateTime(pendulum.today())
 
 
+class DateRangeError(AttributeError):
+    pass
+
+
 class DateRange:
 
     _business: bool = False
@@ -1193,19 +1197,26 @@ class DateRange:
           set  -  set    end=beg + num
            -  set set    beg=end - num
 
-        >>> DateRange(Date(2014, 4, 3), None).business().range(3)
+        >>> DateRange('4/3/2014', None).business().range(3)
         (Date(2014, 4, 3), Date(2014, 4, 8))
         >>> DateRange(None, Date(2014, 7, 27)).range(20)
         (Date(2014, 7, 7), Date(2014, 7, 27))
-        >>> DateRange(None, Date(2014, 7, 27)).business().range(20)
+        >>> DateRange(None, '2014/7/27').business().range(20)
         (Date(2014, 6, 27), Date(2014, 7, 27))
         """
         begdate, enddate = self.begdate, self.enddate
 
+        window = abs(window or 0)
+
+        if begdate and enddate and window:
+            raise DateRangeError('Window requested and begdate and enddate provided')
+        if not begdate and not enddate and not window:
+            raise DateRangeError('Missing begdate, enddate, and window')
+        if not begdate and not enddate and window:
+            raise DateRangeError('Missing begdate and enddate, window specified')
+
         if begdate and enddate:
             return begdate, enddate
-
-        window = abs(window)
 
         if (not begdate and not enddate) or enddate:
             begdate = (enddate.business() if enddate._business else
