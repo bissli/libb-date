@@ -1272,7 +1272,7 @@ class DateRange:
         """
         begdate, enddate = self.begdate, self.enddate
 
-        window = abs(window or 0)
+        window = abs(int(window or 0))
 
         if begdate and enddate and window:
             raise DateRangeError('Window requested and begdate and enddate provided')
