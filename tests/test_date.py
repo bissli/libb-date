@@ -336,5 +336,22 @@ def end_of_month_weekday(self, weekday='SU'):
     return self.end_of('month').previous(day_obj.get(weekday))
 
 
+def test_parse():
+
+    # cross test between parsing and adding/subtracting negative
+    # business days
+    assert_equal(Date.parse('T-3b'), Date().business().subtract(days=3))
+    assert_equal(Date.parse('T-3b'), Date().business().add(days=-3))
+    assert_equal(Date.parse('T+3b'), Date().business().subtract(days=-3))
+    assert_equal(Date.parse('T+3b'), Date().business().subtract(days=-3))
+
+    assert_equal(Date.parse('P'), Date().business().subtract(days=1))
+    assert_equal(Date.parse('P'), Date().business().add(days=-1))
+    assert_equal(Date.parse('P-3b'), Date().business().add(days=-1).business().subtract(days=3))
+    assert_equal(Date.parse('P-3b'), Date().business().subtract(days=1).business().add(days=-3))
+    assert_equal(Date.parse('P+3b'), Date().business().add(days=-1).business().subtract(days=-3))
+    assert_equal(Date.parse('P+3b'), Date().business().subtract(days=1).business().subtract(days=-3))
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

@@ -101,7 +101,7 @@ MONTH_SHORTNAME = {
     'dec': 12,
 }
 
-DATEMATCH = r'^(N|T|Y|P|M)([-+]\d+b?)?$'
+DATEMATCH = r'^(?P<d>N|T|Y|P|M)(?P<n>[-+]?\d+)?(?P<b>b?)?$'
 
 
 def is_dateish(x):
@@ -551,6 +551,12 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         True
         >>> Date.parse('T-3b')==Date().business().subtract(days=3)
         True
+        >>> Date.parse('T-3b')==Date().business().add(days=-3)
+        True
+        >>> Date.parse('T+3b')==Date().business().subtract(days=-3)
+        True
+        >>> Date.parse('T+3b')==Date().business().add(days=3)
+        True
         >>> Date.parse('M')==Date().start_of('month').subtract(days=1)
         True
 
@@ -669,19 +675,17 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         # handle special symbolic values: T, Y-2, P-1b
         if shortcodes:
             if m := re.match(DATEMATCH, s):
-                d = date_for_symbol(m.group(1))
-                if m.group(2):
-                    bus = m.group(2)[-1] == 'b'
-                    n = int(m.group(2).replace('b', ''))
-                    if bus:
-                        if n >= 0:
-                            d = d.business().add(days=n)
-                        else:
-                            d = d.business().subtract(days=n)
-                    elif n >= 0:
-                        d = d.add(days=n)
-                    else:
-                        d = d.subtract(days=n)
+                d = date_for_symbol(m.groupdict().get('d'))
+                n = m.groupdict().get('n')
+                if not n:
+                    return d
+                n = int(n)
+                b = m.groupdict().get('b')
+                if b:
+                    assert b == 'b'
+                    d = d.business().add(days=n)
+                else:
+                    d = d.add(days=n)
                 return d
             if 'today' in s.lower():
                 return today()
