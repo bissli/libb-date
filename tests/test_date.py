@@ -1,3 +1,4 @@
+import copy
 import datetime
 
 import pendulum
@@ -351,6 +352,24 @@ def test_parse():
     assert_equal(Date.parse('P-3b'), Date().business().subtract(days=1).business().add(days=-3))
     assert_equal(Date.parse('P+3b'), Date().business().add(days=-1).business().subtract(days=-3))
     assert_equal(Date.parse('P+3b'), Date().business().subtract(days=1).business().subtract(days=-3))
+
+
+def test_copy():
+
+    d = pendulum.Date(2022, 1, 1)
+    assert_equal(copy.copy(d), d)
+
+    d = Date(2022, 1, 1)
+    assert_equal(copy.copy(d), d)
+
+
+def test_deepcopy():
+
+    d = pendulum.Date(2022, 1, 1)
+    assert_equal(copy.deepcopy(d), d)
+
+    d = Date(2022, 1, 1)
+    assert_equal(copy.deepcopy(d), d)
 
 
 if __name__ == '__main__':

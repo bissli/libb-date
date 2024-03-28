@@ -1,5 +1,6 @@
 import calendar
 import contextlib
+import copy
 import datetime
 import logging
 import os
@@ -148,7 +149,16 @@ def type_class(typ, obj):
         return DateTime
     if obj.__class__ in (datetime.date, pendulum.Date, Date):
         return Date
-    raise ValueError('Unknown type in Date/DateTime method')
+    raise ValueError(f'Unknown type {typ}')
+
+
+def parent_params(cls):
+    if cls in (datetime.date, pendulum.Date, Date):
+        return ('year', 'month', 'day')
+    if cls in (datetime.datetime, pendulum.DateTime, DateTime):
+        return ('year', 'month', 'day', 'hour', 'minute',
+                'second', 'microsecond', 'tzinfo')
+    raise ValueError(f'Unknown cls {cls}')
 
 
 def store_entity(func=None, *, typ=None):
@@ -487,7 +497,38 @@ class PendulumBusinessDateMixin:
         return self
 
 
-class Date(PendulumBusinessDateMixin, pendulum.Date):
+class InternalsMixin:
+
+    @store_both
+    def __copy__(self):
+        """Copy
+        >>> assert Date(2001, 1, 1) == copy.copy(Date(2001, 1, 1))
+        >>> assert hasattr(copy.copy(Date(2001, 1, 1)), '_business')
+        >>> assert hasattr(copy.copy(Date(2001, 1, 1)), '_entity')
+        >>> assert DateTime(2001, 1, 1, 2, 2, 2) == copy.copy(DateTime(2001, 1, 1, 2, 2, 2))
+        >>> assert hasattr(copy.copy(DateTime(2001, 1, 1, 2, 2, 2)), '_business')
+        >>> assert hasattr(copy.copy(DateTime(2001, 1, 1, 2, 2, 2)), '_entity')
+        """
+        params = parent_params(self._pendulum)
+        return self.__class__(*[getattr(self, p) for p in params])
+
+    def __deepcopy__(self, memo):
+        """Deepcopy
+        >>> assert Date(2001, 1, 1) == copy.deepcopy(Date(2001, 1, 1))
+        >>> assert hasattr(copy.deepcopy(Date(2001, 1, 1)), '_business')
+        >>> assert hasattr(copy.deepcopy(Date(2001, 1, 1)), '_entity')
+        >>> assert DateTime(2001, 1, 1, 2, 2, 2) == copy.deepcopy(DateTime(2001, 1, 1, 2, 2, 2))
+        >>> assert hasattr(copy.deepcopy(DateTime(2001, 1, 1, 2, 2, 2)), '_business')
+        >>> assert hasattr(copy.deepcopy(DateTime(2001, 1, 1, 2, 2, 2)), '_entity')
+        """
+        d =  self.__copy__()
+        memo[id(self)] = d
+        for k, v in self.__dict__.items():
+            setattr(d, k, copy.deepcopy(v, memo))
+        return d
+
+
+class Date(PendulumBusinessDateMixin, InternalsMixin, pendulum.Date):
     """Inherits and wraps pendulum.Date
     """
 
@@ -497,6 +538,8 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
     def __new__(cls, *args, **kwargs):
         """
         >>> Date(2022, 1, 1)
+        Date(2022, 1, 1)
+        >>> Date('2022/1/1')
         Date(2022, 1, 1)
         >>> d = Date(datetime.date(2022, 1, 1))
         >>> d
@@ -515,6 +558,8 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         >>> d = Date()
         >>> assert d == pendulum.today().date()
         """
+        if args and isinstance(args[0], str):
+            return Date.parse(*args, **kwargs)
         if len(args) == 0:
             thedate = pendulum.today().date()
             thedate = thedate.year, thedate.month, thedate.day
@@ -1024,7 +1069,7 @@ def _has_tzinfo(*args, **kw):
     return zinfo or tzinfo
 
 
-class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
+class DateTime(PendulumBusinessDateMixin, InternalsMixin, pendulum.DateTime):
     """Inherits and wraps pendulum.DateTime
     """
 
@@ -1034,6 +1079,8 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
     def __new__(cls, *args, **kwargs):
         """
         >>> DateTime(2022, 1, 1)
+        DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
+        >>> DateTime('2022/1/1')
         DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
         >>> DateTime(2022, 1, 1, 0, 0, 0)
         DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
@@ -1048,6 +1095,8 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         >>> d = DateTime()
         >>> assert d == pendulum.today()
         """
+        if args and isinstance(args[0], str):
+            return DateTime.parse(*args, **kwargs)
         if len(args) == 0:
             thedate = datetime_to_tuple(pendulum.today())
         if len(args) == 1:
