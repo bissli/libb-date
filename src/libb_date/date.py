@@ -1326,7 +1326,7 @@ class DateRange:
         interval = pendulum.interval(begdate, enddate)
         return [Date(d) for d in interval.range(f'{unit}s')]
 
-    def interval_days(self, business=False) -> int:
+    def interval_days(self) -> int:
         """Return days between (begdate, enddate] or negative (enddate, begdate].
 
         >>> DateRange(Date.parse('2018/9/6'), Date.parse('2018/9/10')).interval_days()
