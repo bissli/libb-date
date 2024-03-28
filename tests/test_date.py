@@ -276,6 +276,12 @@ def test_add():
     d = Date(datetime.date(2021, 11, 17)).business().add(days=5)
     assert_equal(d, Date(2021, 11, 24))
 
+    # Test reverse direction
+    d = Date(datetime.date(2018, 11, 29)).business().subtract(days=-5)
+    assert_equal(d, Date(2018, 12, 7))
+    d = Date(datetime.date(2021, 11, 17)).business().subtract(days=-5)
+    assert_equal(d, Date(2021, 11, 24))
+
 
 def test_subtract():
 
@@ -293,6 +299,16 @@ def test_subtract():
     d = Date(datetime.date(2018, 12, 7)).business().subtract(days=5)
     assert_equal(d, Date(2018, 11, 29))
     d = Date(datetime.date(2021, 11, 24)).subtract(days=7)
+    assert_equal(d, Date(2021, 11, 17))
+
+    # Test reverse direction
+    d = Date(datetime.date(2018, 12, 7)).business().add(days=-5)
+    assert_equal(d, Date(2018, 11, 29))
+    d = Date(datetime.date(2021, 11, 24)).add(days=-7)
+    assert_equal(d, Date(2021, 11, 17))
+    d = Date(datetime.date(2018, 12, 7)).business().add(days=-5)
+    assert_equal(d, Date(2018, 11, 29))
+    d = Date(datetime.date(2021, 11, 24)).add(days=-7)
     assert_equal(d, Date(2021, 11, 17))
 
 

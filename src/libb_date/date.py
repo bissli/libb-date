@@ -287,9 +287,10 @@ class PendulumBusinessDateMixin:
         _business = self._business
         self._business = False
         if _business:
-            days = abs(days)
             if days == 0:
                 return self._business_or_next()
+            if days < 0:
+                return self.business().subtract(days=abs(days))
             while days > 0:
                 self = self._business_next(days=1)
                 days -= 1
@@ -305,9 +306,10 @@ class PendulumBusinessDateMixin:
         _business = self._business
         self._business = False
         if _business:
-            days = abs(days)
             if days == 0:
                 return self._business_or_previous()
+            if days < 0:
+                return self.business().add(days=abs(days))
             while days > 0:
                 self = self._business_previous(days=1)
                 days -= 1
