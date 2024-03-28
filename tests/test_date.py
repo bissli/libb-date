@@ -35,6 +35,79 @@ def test_end_of_week():
     assert_equal(d, Date(2020, 4, 9))
 
 
+def test_business_date_or_next():
+    # 9/1 is Saturday, 9/3 is Labor Day
+    d = Date(datetime.date(2018, 9, 1))\
+        .business()\
+        .add(days=0)
+    assert_equal(d, Date(2018, 9, 4))
+
+    # regular Saturday
+    d = Date(datetime.date(2024, 3, 30))\
+        .business()\
+        .add(days=0)
+    assert_equal(d, Date(2024, 4, 1))
+
+    d = Date(datetime.date(2024, 3, 30))\
+        .subtract(days=1)\
+        .business()\
+        .add(days=1)
+    assert_equal(d, Date(2024, 4, 1))
+
+    # regular Sunday
+    d = Date(datetime.date(2024, 3, 31))\
+        .business()\
+        .add(days=0)
+    assert_equal(d, Date(2024, 4, 1))
+
+    d = Date(datetime.date(2024, 3, 31))\
+        .subtract(days=1)\
+        .business()\
+        .add(days=1)
+    assert_equal(d, Date(2024, 4, 1))
+
+    # regular Monday
+    d = Date(datetime.date(2024, 4, 1))\
+        .business()\
+        .add(days=0)
+    assert_equal(d, Date(2024, 4, 1))
+
+
+def test_business_date_or_previous():
+
+    # 3/29 is Good Friday
+
+    # regular Saturday
+    d = Date(datetime.date(2024, 3, 30))\
+        .business()\
+        .subtract(days=0)
+    assert_equal(d, Date(2024, 3, 28))
+
+    d = Date(datetime.date(2024, 3, 30))\
+        .add(days=1)\
+        .business()\
+        .subtract(days=1)
+    assert_equal(d, Date(2024, 3, 28))
+
+    # regular Sunday
+    d = Date(datetime.date(2024, 3, 31))\
+        .business()\
+        .subtract(days=0)
+    assert_equal(d, Date(2024, 3, 28))
+
+    d = Date(datetime.date(2024, 3, 31))\
+        .add(days=1)\
+        .business()\
+        .subtract(days=1)
+    assert_equal(d, Date(2024, 3, 28))
+
+    # regular Monday
+    d = Date(datetime.date(2024, 4, 1))\
+        .business()\
+        .subtract(days=0)
+    assert_equal(d, Date(2024, 4, 1))
+
+
 def test_next_friday():
     """Get next end of week (Friday)."""
 
@@ -240,6 +313,7 @@ def start_of_month_weekday(self, weekday='MO'):
     Date(2014, 8, 6)
     """
     return self.start_of('month').next(day_obj.get(weekday))
+
 
 def end_of_month_weekday(self, weekday='SU'):
     """Like `start`, but for the end X weekday of month"""

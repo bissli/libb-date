@@ -288,6 +288,8 @@ class PendulumBusinessDateMixin:
         self._business = False
         if _business:
             days = abs(days)
+            if days == 0:
+                return self._business_or_next()
             while days > 0:
                 self = self._business_next(days=1)
                 days -= 1
@@ -304,6 +306,8 @@ class PendulumBusinessDateMixin:
         self._business = False
         if _business:
             days = abs(days)
+            if days == 0:
+                return self._business_or_previous()
             while days > 0:
                 self = self._business_previous(days=1)
                 days -= 1
@@ -492,10 +496,16 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         """
         >>> Date(2022, 1, 1)
         Date(2022, 1, 1)
-        >>> Date(datetime.date(2022, 1, 1))
+        >>> d = Date(datetime.date(2022, 1, 1))
+        >>> d
         Date(2022, 1, 1)
-        >>> Date(Date(2022, 1, 1))
+        >>> d._business
+        False
+        >>> d = Date(Date(2022, 1, 1))
+        >>> d
         Date(2022, 1, 1)
+        >>> d._business
+        False
 
         >>> d = Date(None)
         >>> assert d == pendulum.today().date()
