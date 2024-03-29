@@ -353,6 +353,12 @@ def test_parse():
     assert_equal(Date.parse('P+3b'), Date().business().add(days=-1).business().subtract(days=-3))
     assert_equal(Date.parse('P+3b'), Date().business().subtract(days=1).business().subtract(days=-3))
 
+    assert_equal(Date('01/11/19'), Date(2019, 1, 11))
+    assert_equal(Date.parse('01/11/19'), Date(2019, 1, 11))
+    assert_equal(Date('01/15/20'), Date(2020, 1, 15))
+    assert_equal(Date('01/15/21'), Date(2021, 1, 15))
+    assert_equal(Date('01/15/22'), Date(2022, 1, 15))
+
 
 def test_copy():
 

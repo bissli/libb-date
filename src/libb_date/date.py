@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 import pandas_market_calendars as mcal
 import pendulum
+from dateutil import parser
 from typing_extensions import (
     Callable,
     Dict,
@@ -637,8 +638,8 @@ class Date(PendulumBusinessDateMixin, InternalsMixin, pendulum.Date):
         >>> Date.parse('June 23, 2006')
         Date(2006, 6, 23)
 
-        dd-mon-yy (too tricky to parse ad-hoc)
-        >>> Date.parse('23-May-12', fmt='%d-%b-%y')
+        dd-mon-yy
+        >>> Date.parse('23-May-12')
         Date(2012, 5, 23)
 
         ddmonyyyy
@@ -738,7 +739,7 @@ class Date(PendulumBusinessDateMixin, InternalsMixin, pendulum.Date):
                 return today().subtract(days=1)
 
         try:
-            return Date(pendulum.parse(s, strict=False).date())
+            return Date(parser.parse(s).date())
         except (TypeError, ValueError):
             logger.debug('Date parser failed .. trying our custom parsers')
 
@@ -1050,7 +1051,7 @@ class Time(pendulum.Time):
         logger.debug('Custom parsers failed, trying pendulum parser')
 
         try:
-            return pendulum.parse(s, strict=False).time()
+            return parser.parse(s).time()
         except (TypeError, ValueError):
             pass
 
@@ -1186,7 +1187,7 @@ class DateTime(PendulumBusinessDateMixin, InternalsMixin, pendulum.DateTime):
             raise TypeError(f'Invalid type for date column: {s.__class__}')
 
         try:
-            return DateTime(pendulum.parse(s, strict=False))
+            return DateTime(pendulum.instance(parser.parse(s)))
         except (TypeError, ValueError) as err:
             logger.debug('Date parser failed .. trying our custom parsers')
 
