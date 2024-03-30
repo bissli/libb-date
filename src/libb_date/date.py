@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     'Date',
     'DateTime',
-    'DateRange',
+    'Interval',
     'Time',
     'WeekDay',
     'now',
@@ -1218,11 +1218,11 @@ def now():
     return DateTime(pendulum.today())
 
 
-class DateRangeError(AttributeError):
+class IntervalError(AttributeError):
     pass
 
 
-class DateRange:
+class Interval:
 
     _business: bool = False
     _entity: Type[NYSE] = NYSE
@@ -1264,11 +1264,11 @@ class DateRange:
           set  -  set    end=beg + num
            -  set set    beg=end - num
 
-        >>> DateRange('4/3/2014', None).business().range(3)
+        >>> Interval('4/3/2014', None).business().range(3)
         (Date(2014, 4, 3), Date(2014, 4, 8))
-        >>> DateRange(None, Date(2014, 7, 27)).range(20)
+        >>> Interval(None, Date(2014, 7, 27)).range(20)
         (Date(2014, 7, 7), Date(2014, 7, 27))
-        >>> DateRange(None, '2014/7/27').business().range(20)
+        >>> Interval(None, '2014/7/27').business().range(20)
         (Date(2014, 6, 27), Date(2014, 7, 27))
         """
         begdate, enddate = self.begdate, self.enddate
@@ -1276,11 +1276,11 @@ class DateRange:
         window = abs(int(window or 0))
 
         if begdate and enddate and window:
-            raise DateRangeError('Window requested and begdate and enddate provided')
+            raise IntervalError('Window requested and begdate and enddate provided')
         if not begdate and not enddate and not window:
-            raise DateRangeError('Missing begdate, enddate, and window')
+            raise IntervalError('Missing begdate, enddate, and window')
         if not begdate and not enddate and window:
-            raise DateRangeError('Missing begdate and enddate, window specified')
+            raise IntervalError('Missing begdate and enddate, window specified')
 
         if begdate and enddate:
             return begdate, enddate
@@ -1297,9 +1297,9 @@ class DateRange:
     def is_business_day_series(self) -> List[bool]:
         """Is business date range.
 
-        >>> list(DateRange(Date(2018, 11, 19), Date(2018, 11, 25)).is_business_day_series())
+        >>> list(Interval(Date(2018, 11, 19), Date(2018, 11, 25)).is_business_day_series())
         [True, True, True, False, True, False, False]
-        >>> list(DateRange(Date(2021, 11, 22),Date(2021, 11, 28)).is_business_day_series())
+        >>> list(Interval(Date(2021, 11, 22),Date(2021, 11, 28)).is_business_day_series())
         [True, True, True, False, True, False, False]
         """
         for thedate in self.series():
@@ -1313,34 +1313,34 @@ class DateRange:
         - Window gives window=N additional days. So `until`-`window`=1
         defaults to include ALL days (not just business days)
 
-        >>> next(DateRange(Date(2014,7,16), Date(2014,7,16)).series())
+        >>> next(Interval(Date(2014,7,16), Date(2014,7,16)).series())
         Date(2014, 7, 16)
-        >>> next(DateRange(Date(2014,7,12), Date(2014,7,16)).series())
+        >>> next(Interval(Date(2014,7,12), Date(2014,7,16)).series())
         Date(2014, 7, 12)
-        >>> len(list(DateRange(Date(2014,7,12), Date(2014,7,16)).series()))
+        >>> len(list(Interval(Date(2014,7,12), Date(2014,7,16)).series()))
         5
-        >>> len(list(DateRange(Date(2014,7,12), None).series(window=4)))
+        >>> len(list(Interval(Date(2014,7,12), None).series(window=4)))
         5
-        >>> len(list(DateRange(Date(2014,7,16)).series(window=4)))
+        >>> len(list(Interval(Date(2014,7,16)).series(window=4)))
         5
 
         Weekend and a holiday
-        >>> len(list(DateRange(Date(2014,7,3), Date(2014,7,5)).business().series()))
+        >>> len(list(Interval(Date(2014,7,3), Date(2014,7,5)).business().series()))
         1
-        >>> len(list(DateRange(Date(2014,7,17), Date(2014,7,16)).series()))
+        >>> len(list(Interval(Date(2014,7,17), Date(2014,7,16)).series()))
         Traceback (most recent call last):
         ...
         AssertionError: Begdate must be earlier or equal to Enddate
 
         since != business day and want business days
         1/[3,10]/2015 is a Saturday, 1/7/2015 is a Wednesday
-        >>> len(list(DateRange(Date(2015,1,3), Date(2015,1,7)).business().series()))
+        >>> len(list(Interval(Date(2015,1,3), Date(2015,1,7)).business().series()))
         3
-        >>> len(list(DateRange(Date(2015,1,3), None).business().series(window=3)))
+        >>> len(list(Interval(Date(2015,1,3), None).business().series(window=3)))
         3
-        >>> len(list(DateRange(Date(2015,1,3), Date(2015,1,10)).business().series()))
+        >>> len(list(Interval(Date(2015,1,3), Date(2015,1,10)).business().series()))
         5
-        >>> len(list(DateRange(Date(2015,1,3), None).business().series(window=5)))
+        >>> len(list(Interval(Date(2015,1,3), None).business().series(window=5)))
         5
         """
         window = abs(int(window))
@@ -1366,9 +1366,9 @@ class DateRange:
     def end_of_series(self, unit='month') -> List[Date]:
         """Return a series between and inclusive of begdate and enddate.
 
-        >>> DateRange(Date(2018, 1, 5), Date(2018, 4, 5)).end_of_series('month')
+        >>> Interval(Date(2018, 1, 5), Date(2018, 4, 5)).end_of_series('month')
         [Date(2018, 1, 31), Date(2018, 2, 28), Date(2018, 3, 31), Date(2018, 4, 30)]
-        >>> DateRange(Date(2018, 1, 5), Date(2018, 4, 5)).end_of_series('week')
+        >>> Interval(Date(2018, 1, 5), Date(2018, 4, 5)).end_of_series('week')
         [Date(2018, 1, 7), Date(2018, 1, 14), ..., Date(2018, 4, 8)]
         """
         begdate = self.begdate.end_of(unit)
@@ -1376,16 +1376,16 @@ class DateRange:
         interval = pendulum.interval(begdate, enddate)
         return [Date(d) for d in interval.range(f'{unit}s')]
 
-    def interval_days(self) -> int:
+    def days(self) -> int:
         """Return days between (begdate, enddate] or negative (enddate, begdate].
 
-        >>> DateRange(Date.parse('2018/9/6'), Date.parse('2018/9/10')).interval_days()
+        >>> Interval(Date.parse('2018/9/6'), Date.parse('2018/9/10')).days()
         4
-        >>> DateRange(Date.parse('2018/9/10'), Date.parse('2018/9/6')).interval_days()
+        >>> Interval(Date.parse('2018/9/10'), Date.parse('2018/9/6')).days()
         -4
-        >>> DateRange(Date.parse('2018/9/6'), Date.parse('2018/9/10')).business().interval_days()
+        >>> Interval(Date.parse('2018/9/6'), Date.parse('2018/9/10')).business().days()
         2
-        >>> DateRange(Date.parse('2018/9/10'), Date.parse('2018/9/6')).business().interval_days()
+        >>> Interval(Date.parse('2018/9/10'), Date.parse('2018/9/6')).business().days()
         -2
         """
         assert self.begdate
@@ -1394,27 +1394,27 @@ class DateRange:
             return 0
         if self.begdate < self.enddate:
             return len(list(self.series())) - 1
-        _reverse = DateRange(self.enddate, self.begdate)
+        _reverse = Interval(self.enddate, self.begdate)
         _reverse._entity = self._entity
         _reverse._business = self._business
         return -len(list(_reverse.series())) + 1
 
-    def interval_quarters(self):
+    def quarters(self):
         """Return the number of quarters between two dates
         TODO: good enough implementation; refine rules to be heuristically precise
 
-        >>> round(DateRange(Date(2020, 1, 1), Date(2020, 2, 16)).interval_quarters(), 2)
+        >>> round(Interval(Date(2020, 1, 1), Date(2020, 2, 16)).quarters(), 2)
         0.5
-        >>> round(DateRange(Date(2020, 1, 1), Date(2020, 4, 1)).interval_quarters(), 2)
+        >>> round(Interval(Date(2020, 1, 1), Date(2020, 4, 1)).quarters(), 2)
         1.0
-        >>> round(DateRange(Date(2020, 1, 1), Date(2020, 7, 1)).interval_quarters(), 2)
+        >>> round(Interval(Date(2020, 1, 1), Date(2020, 7, 1)).quarters(), 2)
         1.99
-        >>> round(DateRange(Date(2020, 1, 1), Date(2020, 8, 1)).interval_quarters(), 2)
+        >>> round(Interval(Date(2020, 1, 1), Date(2020, 8, 1)).quarters(), 2)
         2.33
         """
-        return 4 * self.interval_days() / 365.0
+        return 4 * self.days() / 365.0
 
-    def interval_years(self, basis: int = 0):
+    def years(self, basis: int = 0):
         """Years with Fractions (matches Excel YEARFRAC)
 
         Adapted from https://web.archive.org/web/20200915094905/https://dwheeler.com/yearfrac/calc_yearfrac.py
@@ -1430,24 +1430,24 @@ class DateRange:
         >>> enddate = Date(2020, 5, 17)
 
         Tested Against Excel
-        >>> "{:.4f}".format(DateRange(begdate, enddate).interval_years(0))
+        >>> "{:.4f}".format(Interval(begdate, enddate).years(0))
         '42.2139'
-        >>> '{:.4f}'.format(DateRange(begdate, enddate).interval_years(1))
+        >>> '{:.4f}'.format(Interval(begdate, enddate).years(1))
         '42.2142'
-        >>> '{:.4f}'.format(DateRange(begdate, enddate).interval_years(2))
+        >>> '{:.4f}'.format(Interval(begdate, enddate).years(2))
         '42.8306'
-        >>> '{:.4f}'.format(DateRange(begdate, enddate).interval_years(3))
+        >>> '{:.4f}'.format(Interval(begdate, enddate).years(3))
         '42.2438'
-        >>> '{:.4f}'.format(DateRange(begdate, enddate).interval_years(4))
+        >>> '{:.4f}'.format(Interval(begdate, enddate).years(4))
         '42.2194'
-        >>> '{:.4f}'.format(DateRange(enddate, begdate).interval_years(4))
+        >>> '{:.4f}'.format(Interval(enddate, begdate).years(4))
         '-42.2194'
 
         Excel has a known leap year bug when year == 1900 (=YEARFRAC("1900-1-1", "1900-12-1", 1) -> 0.9178)
         The bug originated from Lotus 1-2-3, and was purposely implemented in Excel for the purpose of backward compatibility.
         >>> begdate = Date(1900, 1, 1)
         >>> enddate = Date(1900, 12, 1)
-        >>> '{:.4f}'.format(DateRange(begdate, enddate).interval_years(4))
+        >>> '{:.4f}'.format(Interval(begdate, enddate).years(4))
         '0.9167'
         """
 
