@@ -42,3 +42,4 @@ poetry.toml
 poetry.lock
 .envrc
 TODO.*
+*.pkl

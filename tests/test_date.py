@@ -1,5 +1,6 @@
 import copy
 import datetime
+import pickle
 
 import pendulum
 import pytest
@@ -376,6 +377,18 @@ def test_deepcopy():
 
     d = Date(2022, 1, 1)
     assert_equal(copy.deepcopy(d), d)
+
+
+def test_pickle():
+
+    d = Date(2022, 1, 1)
+
+    with open('date.pkl', 'wb') as f:
+        pickle.dump(d, f)
+    with open('date.pkl', 'rb') as f:
+        d_ = pickle.load(f)
+
+    assert_equal(d, d_)
 
 
 if __name__ == '__main__':

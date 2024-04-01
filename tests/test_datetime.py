@@ -1,7 +1,11 @@
+import copy
+import pickle
+
+import pendulum
 import pytest
-from asserts import assert_true, assert_equal, assert_false, assert_not_equal
+from asserts import assert_equal, assert_false, assert_not_equal, assert_true
+from libb_date.date import Date, DateTime, Time
 from pendulum.tz import Timezone
-from libb_date.date import Date, Time, DateTime
 
 
 def test_add():
@@ -53,6 +57,36 @@ def test_combine():
     assert isinstance(d, DateTime)
     assert d._business is False
     assert_equal(d, DateTime(2000, 1, 1, 9, 30, 0, tzinfo=Timezone('UTC')))
+
+
+def test_copy():
+
+    d = pendulum.DateTime(2022, 1, 1, 12, 30)
+    assert_equal(copy.copy(d), d)
+
+    d = DateTime(2022, 1, 1, 12, 30)
+    assert_equal(copy.copy(d), d)
+
+
+def test_deepcopy():
+
+    d = pendulum.DateTime(2022, 1, 1, 12, 30)
+    assert_equal(copy.deepcopy(d), d)
+
+    d = DateTime(2022, 1, 1, 12, 30)
+    assert_equal(copy.deepcopy(d), d)
+
+
+def test_pickle():
+
+    d = DateTime(2022, 1, 1, 12, 30)
+
+    with open('datetime.pkl', 'wb') as f:
+        pickle.dump(d, f)
+    with open('datetime.pkl', 'rb') as f:
+        d_ = pickle.load(f)
+
+    assert_equal(d, d_)
 
 
 if __name__ == '__main__':

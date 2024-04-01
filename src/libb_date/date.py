@@ -529,6 +529,10 @@ class InternalsMixin:
         return d
 
 
+def date_to_tuple(obj: pendulum.Date):
+    return obj.year, obj.month, obj.day
+
+
 class Date(PendulumBusinessDateMixin, InternalsMixin, pendulum.Date):
     """Inherits and wraps pendulum.Date
     """
@@ -559,20 +563,23 @@ class Date(PendulumBusinessDateMixin, InternalsMixin, pendulum.Date):
         >>> d = Date()
         >>> assert d == pendulum.today().date()
         """
+        this = None
+        if len(args) == 0:
+            this = date_to_tuple(pendulum.today().date())
         if args and isinstance(args[0], str):
             return Date.parse(*args, **kwargs)
-        if len(args) == 0:
-            thedate = pendulum.today().date()
-            thedate = thedate.year, thedate.month, thedate.day
-        if len(args) == 1:
-            thedate = args[0] or pendulum.today().date()
-            thedate = thedate.year, thedate.month, thedate.day
+        if args and isinstance(args[0], bytes):
+            this = date_to_tuple(datetime.date(args[0]))
+        if len(args) == 1 and isinstance(args[0], datetime.date):
+            this = args[0].year, args[0].month, args[0].day
+        if len(args) == 1 and args[0] is None:
+            this = date_to_tuple(pendulum.today().date())
         if len(args) == 3:
-            thedate = args[0], args[1], args[2]
-        if len(args) == 2 or len(args) > 3:
-            raise ValueError(f'Incompatible dates: {args}')
-        self = super(pendulum.Date, cls).__new__(cls, *thedate, **kwargs)
-        return self
+            this = args[0], args[1], args[2]
+        if this is not None:
+            self = super(pendulum.Date, cls).__new__(cls, *this, **kwargs)
+            return self
+        raise ValueError(f'Incompatible arguments for Date: {args}')
 
     def to_string(self, fmt: str) -> str:
         """Format cleaner https://stackoverflow.com/a/2073189.
@@ -1096,18 +1103,23 @@ class DateTime(PendulumBusinessDateMixin, InternalsMixin, pendulum.DateTime):
         >>> d = DateTime()
         >>> assert d == pendulum.today()
         """
+        this = None
         if args and isinstance(args[0], str):
             return DateTime.parse(*args, **kwargs)
         if len(args) == 0:
-            thedate = datetime_to_tuple(pendulum.today())
-        if len(args) == 1:
-            thedate = datetime_to_tuple(args[0] or pendulum.today())
+            this = datetime_to_tuple(pendulum.today())
+        if len(args) == 1 and args[0] is None:
+            this = datetime_to_tuple(pendulum.today())
+        if len(args) == 1 and isinstance(args[0], datetime.datetime):
+            this = datetime_to_tuple(args[0])
         if len(args) >= 3:
-            thedate = args
+            this = args
             if not _has_tzinfo(*args, **kwargs):
                 kwargs['tzinfo'] = LCL
-        self = super(pendulum.DateTime, cls).__new__(cls, *thedate, **kwargs)
-        return self
+        if this is not None:
+            self = super(pendulum.DateTime, cls).__new__(cls, *this, **kwargs)
+            return self
+        raise ValueError(f'Incompatible arguments for DateTime: {args}')
 
     def epoch(self):
         """Translate a datetime object into unix seconds since epoch
