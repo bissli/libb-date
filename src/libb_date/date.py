@@ -1,6 +1,5 @@
 import calendar
 import contextlib
-import copy
 import datetime
 import logging
 import os
@@ -498,42 +497,11 @@ class PendulumBusinessDateMixin:
         return self
 
 
-class InternalsMixin:
-
-    @store_both
-    def __copy__(self):
-        """Copy
-        >>> assert Date(2001, 1, 1) == copy.copy(Date(2001, 1, 1))
-        >>> assert hasattr(copy.copy(Date(2001, 1, 1)), '_business')
-        >>> assert hasattr(copy.copy(Date(2001, 1, 1)), '_entity')
-        >>> assert DateTime(2001, 1, 1, 2, 2, 2) == copy.copy(DateTime(2001, 1, 1, 2, 2, 2))
-        >>> assert hasattr(copy.copy(DateTime(2001, 1, 1, 2, 2, 2)), '_business')
-        >>> assert hasattr(copy.copy(DateTime(2001, 1, 1, 2, 2, 2)), '_entity')
-        """
-        params = parent_params(self._pendulum)
-        return self.__class__(*[getattr(self, p) for p in params])
-
-    def __deepcopy__(self, memo):
-        """Deepcopy
-        >>> assert Date(2001, 1, 1) == copy.deepcopy(Date(2001, 1, 1))
-        >>> assert hasattr(copy.deepcopy(Date(2001, 1, 1)), '_business')
-        >>> assert hasattr(copy.deepcopy(Date(2001, 1, 1)), '_entity')
-        >>> assert DateTime(2001, 1, 1, 2, 2, 2) == copy.deepcopy(DateTime(2001, 1, 1, 2, 2, 2))
-        >>> assert hasattr(copy.deepcopy(DateTime(2001, 1, 1, 2, 2, 2)), '_business')
-        >>> assert hasattr(copy.deepcopy(DateTime(2001, 1, 1, 2, 2, 2)), '_entity')
-        """
-        d =  self.__copy__()
-        memo[id(self)] = d
-        for k, v in self.__dict__.items():
-            setattr(d, k, copy.deepcopy(v, memo))
-        return d
-
-
 def date_to_tuple(obj: pendulum.Date):
     return obj.year, obj.month, obj.day
 
 
-class Date(PendulumBusinessDateMixin, InternalsMixin, pendulum.Date):
+class Date(PendulumBusinessDateMixin, pendulum.Date):
     """Inherits and wraps pendulum.Date
     """
 
@@ -1077,7 +1045,7 @@ def _has_tzinfo(*args, **kw):
     return zinfo or tzinfo
 
 
-class DateTime(PendulumBusinessDateMixin, InternalsMixin, pendulum.DateTime):
+class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
     """Inherits and wraps pendulum.DateTime
     """
 
