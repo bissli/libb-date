@@ -5,7 +5,7 @@ import pickle
 import pendulum
 import pytest
 from asserts import assert_equal
-from date import NYSE, Date, WeekDay
+from date import NYSE, Date, WeekDay, to_date
 
 
 def test_end_of_week():
@@ -359,6 +359,9 @@ def test_parse():
     assert_equal(Date('01/15/20'), Date(2020, 1, 15))
     assert_equal(Date('01/15/21'), Date(2021, 1, 15))
     assert_equal(Date('01/15/22'), Date(2022, 1, 15))
+
+    # to_date convenience
+    assert_equal(to_date('01/15/22'), Date(2022, 1, 15))
 
 
 def test_copy():
