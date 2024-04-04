@@ -1,6 +1,6 @@
 import pytest
 from asserts import assert_raises
-from libb_date.date import Interval, IntervalError
+from date import Interval, IntervalError
 
 
 def test_daterange_begdate_enddate_window():

@@ -37,6 +37,7 @@ __all__ = [
     'Date',
     'DateTime',
     'Interval',
+    'IntervalError',
     'Time',
     'WeekDay',
     'now',

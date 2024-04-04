@@ -5,7 +5,7 @@ import pickle
 import pendulum
 import pytest
 from asserts import assert_equal
-from libb_date.date import NYSE, Date, WeekDay
+from date import NYSE, Date, WeekDay
 
 
 def test_end_of_week():
