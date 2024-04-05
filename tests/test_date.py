@@ -258,57 +258,57 @@ def test_add():
     # Closed on 12/5/2018 due to George H.W. Bush's death
     i, thedate = 5, datetime.date(2018, 11, 29)
     while i > 0:
-        thedate = Date(thedate).business().add(days=1)
+        thedate = Date(thedate).b.add(days=1)
         i -= 1
     assert_equal(thedate, Date(2018, 12, 7))
 
     i, thedate = 5, datetime.date(2021, 11, 17)
     while i > 0:
-        thedate = Date(thedate).business().add(days=1)
+        thedate = Date(thedate).b.add(days=1)
         i -= 1
     assert_equal(thedate, Date(2021, 11, 24))
 
     # Infinite date
-    d = Date(datetime.date(9999, 12, 31)).business().add(days=1)
+    d = Date(datetime.date(9999, 12, 31)).b.add(days=1)
     assert_equal(d, Date(9999, 12, 31))
 
     # In one week (from following doctests)
-    d = Date(datetime.date(2018, 11, 29)).business().add(days=5)
+    d = Date(datetime.date(2018, 11, 29)).b.add(days=5)
     assert_equal(d, Date(2018, 12, 7))
-    d = Date(datetime.date(2021, 11, 17)).business().add(days=5)
+    d = Date(datetime.date(2021, 11, 17)).b.add(days=5)
     assert_equal(d, Date(2021, 11, 24))
 
     # Test reverse direction
-    d = Date(datetime.date(2018, 11, 29)).business().subtract(days=-5)
+    d = Date(datetime.date(2018, 11, 29)).b.subtract(days=-5)
     assert_equal(d, Date(2018, 12, 7))
-    d = Date(datetime.date(2021, 11, 17)).business().subtract(days=-5)
+    d = Date(datetime.date(2021, 11, 17)).b.subtract(days=-5)
     assert_equal(d, Date(2021, 11, 24))
 
 
 def test_subtract():
 
     # Closed on 12/5/2018 due to George H.W. Bush's death
-    d = Date(datetime.date(2018, 12, 7)).business().subtract(days=5)
+    d = Date(datetime.date(2018, 12, 7)).b.subtract(days=5)
     assert_equal(d, Date(2018, 11, 29))
-    d = Date(datetime.date(2021, 11, 24)).business().subtract(days=5)
+    d = Date(datetime.date(2021, 11, 24)).b.subtract(days=5)
     assert_equal(d, Date(2021, 11, 17))
 
     # One week ago (from following doctests)
-    d = Date(datetime.date(2018, 12, 7)).business().subtract(days=5)
+    d = Date(datetime.date(2018, 12, 7)).b.subtract(days=5)
     assert_equal(d, Date(2018, 11, 29))
     d = Date(datetime.date(2021, 11, 24)).subtract(days=7)
     assert_equal(d, Date(2021, 11, 17))
-    d = Date(datetime.date(2018, 12, 7)).business().subtract(days=5)
+    d = Date(datetime.date(2018, 12, 7)).b.subtract(days=5)
     assert_equal(d, Date(2018, 11, 29))
     d = Date(datetime.date(2021, 11, 24)).subtract(days=7)
     assert_equal(d, Date(2021, 11, 17))
 
     # Test reverse direction
-    d = Date(datetime.date(2018, 12, 7)).business().add(days=-5)
+    d = Date(datetime.date(2018, 12, 7)).b.add(days=-5)
     assert_equal(d, Date(2018, 11, 29))
     d = Date(datetime.date(2021, 11, 24)).add(days=-7)
     assert_equal(d, Date(2021, 11, 17))
-    d = Date(datetime.date(2018, 12, 7)).business().add(days=-5)
+    d = Date(datetime.date(2018, 12, 7)).b.add(days=-5)
     assert_equal(d, Date(2018, 11, 29))
     d = Date(datetime.date(2021, 11, 24)).add(days=-7)
     assert_equal(d, Date(2021, 11, 17))
@@ -316,7 +316,7 @@ def test_subtract():
 
 def test_set_entity():
 
-    d = Date(2000, 1, 1).entity(NYSE).business().add(days=10)
+    d = Date(2000, 1, 1).entity(NYSE).b.add(days=10)
     assert_equal(d, Date(2000, 1, 14))
 
 
@@ -342,17 +342,17 @@ def test_parse():
 
     # cross test between parsing and adding/subtracting negative
     # business days
-    assert_equal(Date.parse('T-3b'), Date().business().subtract(days=3))
-    assert_equal(Date.parse('T-3b'), Date().business().add(days=-3))
-    assert_equal(Date.parse('T+3b'), Date().business().subtract(days=-3))
-    assert_equal(Date.parse('T+3b'), Date().business().subtract(days=-3))
+    assert_equal(Date.parse('T-3b'), Date().b.subtract(days=3))
+    assert_equal(Date.parse('T-3b'), Date().b.add(days=-3))
+    assert_equal(Date.parse('T+3b'), Date().b.subtract(days=-3))
+    assert_equal(Date.parse('T+3b'), Date().b.subtract(days=-3))
 
-    assert_equal(Date.parse('P'), Date().business().subtract(days=1))
-    assert_equal(Date.parse('P'), Date().business().add(days=-1))
-    assert_equal(Date.parse('P-3b'), Date().business().add(days=-1).business().subtract(days=3))
-    assert_equal(Date.parse('P-3b'), Date().business().subtract(days=1).business().add(days=-3))
-    assert_equal(Date.parse('P+3b'), Date().business().add(days=-1).business().subtract(days=-3))
-    assert_equal(Date.parse('P+3b'), Date().business().subtract(days=1).business().subtract(days=-3))
+    assert_equal(Date.parse('P'), Date().b.subtract(days=1))
+    assert_equal(Date.parse('P'), Date().b.add(days=-1))
+    assert_equal(Date.parse('P-3b'), Date().b.add(days=-1).b.subtract(days=3))
+    assert_equal(Date.parse('P-3b'), Date().b.subtract(days=1).b.add(days=-3))
+    assert_equal(Date.parse('P+3b'), Date().b.add(days=-1).b.subtract(days=-3))
+    assert_equal(Date.parse('P+3b'), Date().b.subtract(days=1).b.subtract(days=-3))
 
     assert_equal(Date('01/11/19'), Date(2019, 1, 11))
     assert_equal(Date.parse('01/11/19'), Date(2019, 1, 11))

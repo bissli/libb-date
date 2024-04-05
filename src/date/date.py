@@ -285,6 +285,10 @@ class PendulumBusinessDateMixin:
         self._business = True
         return self
 
+    @property
+    def b(self) -> Self:
+        return self.business()
+
     def entity(self, e: Type[NYSE] = NYSE) -> Self:
         self._entity = e
         return self
@@ -569,15 +573,15 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         """Convert a string to a date handling many different formats.
 
         previous business day accessed with 'P'
-        >>> Date.parse('P')==Date().business().subtract(days=1)
+        >>> Date.parse('P')==Date().b.subtract(days=1)
         True
-        >>> Date.parse('T-3b')==Date().business().subtract(days=3)
+        >>> Date.parse('T-3b')==Date().b.subtract(days=3)
         True
-        >>> Date.parse('T-3b')==Date().business().add(days=-3)
+        >>> Date.parse('T-3b')==Date().b.add(days=-3)
         True
-        >>> Date.parse('T+3b')==Date().business().subtract(days=-3)
+        >>> Date.parse('T+3b')==Date().b.subtract(days=-3)
         True
-        >>> Date.parse('T+3b')==Date().business().add(days=3)
+        >>> Date.parse('T+3b')==Date().b.add(days=3)
         True
         >>> Date.parse('M')==Date().start_of('month').subtract(days=1)
         True
@@ -794,13 +798,13 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         Date(2015, 1, 1)
         >>> Date(2015, 1, 15).nearest_start_of_month()
         Date(2015, 1, 1)
-        >>> Date(2015, 1, 15).business().nearest_start_of_month()
+        >>> Date(2015, 1, 15).b.nearest_start_of_month()
         Date(2015, 1, 2)
         >>> Date(2015, 1, 16).nearest_start_of_month()
         Date(2015, 2, 1)
         >>> Date(2015, 1, 31).nearest_start_of_month()
         Date(2015, 2, 1)
-        >>> Date(2015, 1, 31).business().nearest_start_of_month()
+        >>> Date(2015, 1, 31).b.nearest_start_of_month()
         Date(2015, 2, 2)
         """
         _business = self._business
@@ -825,13 +829,13 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         Date(2014, 12, 31)
         >>> Date(2015, 1, 15).nearest_end_of_month()
         Date(2014, 12, 31)
-        >>> Date(2015, 1, 15).business().nearest_end_of_month()
+        >>> Date(2015, 1, 15).b.nearest_end_of_month()
         Date(2014, 12, 31)
         >>> Date(2015, 1, 16).nearest_end_of_month()
         Date(2015, 1, 31)
         >>> Date(2015, 1, 31).nearest_end_of_month()
         Date(2015, 1, 31)
-        >>> Date(2015, 1, 31).business().nearest_end_of_month()
+        >>> Date(2015, 1, 31).b.nearest_end_of_month()
         Date(2015, 1, 30)
         """
         _business = self._business
@@ -878,13 +882,13 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
     def lookback(self, unit='last') -> Self:
         """Date back based on lookback string, ie last, week, month.
 
-        >>> Date(2018, 12, 7).business().lookback('last')
+        >>> Date(2018, 12, 7).b.lookback('last')
         Date(2018, 12, 6)
-        >>> Date(2018, 12, 7).business().lookback('day')
+        >>> Date(2018, 12, 7).b.lookback('day')
         Date(2018, 12, 6)
-        >>> Date(2018, 12, 7).business().lookback('week')
+        >>> Date(2018, 12, 7).b.lookback('week')
         Date(2018, 11, 30)
-        >>> Date(2018, 12, 7).business().lookback('month')
+        >>> Date(2018, 12, 7).b.lookback('month')
         Date(2018, 11, 7)
         """
         def _lookback(years=0, months=0, weeks=0, days=0):
@@ -1221,6 +1225,10 @@ class Interval:
             self.enddate.business()
         return self
 
+    @property
+    def b(self) -> Self:
+        return self.business()
+
     def entity(self, e: Type[NYSE] = NYSE) -> Self:
         _self._entity = e
         if self.begdate:
@@ -1245,11 +1253,11 @@ class Interval:
           set  -  set    end=beg + num
            -  set set    beg=end - num
 
-        >>> Interval('4/3/2014', None).business().range(3)
+        >>> Interval('4/3/2014', None).b.range(3)
         (Date(2014, 4, 3), Date(2014, 4, 8))
         >>> Interval(None, Date(2014, 7, 27)).range(20)
         (Date(2014, 7, 7), Date(2014, 7, 27))
-        >>> Interval(None, '2014/7/27').business().range(20)
+        >>> Interval(None, '2014/7/27').b.range(20)
         (Date(2014, 6, 27), Date(2014, 7, 27))
         """
         begdate, enddate = self.begdate, self.enddate
@@ -1306,7 +1314,7 @@ class Interval:
         5
 
         Weekend and a holiday
-        >>> len(list(Interval(Date(2014,7,3), Date(2014,7,5)).business().series()))
+        >>> len(list(Interval(Date(2014,7,3), Date(2014,7,5)).b.series()))
         1
         >>> len(list(Interval(Date(2014,7,17), Date(2014,7,16)).series()))
         Traceback (most recent call last):
@@ -1315,13 +1323,13 @@ class Interval:
 
         since != business day and want business days
         1/[3,10]/2015 is a Saturday, 1/7/2015 is a Wednesday
-        >>> len(list(Interval(Date(2015,1,3), Date(2015,1,7)).business().series()))
+        >>> len(list(Interval(Date(2015,1,3), Date(2015,1,7)).b.series()))
         3
-        >>> len(list(Interval(Date(2015,1,3), None).business().series(window=3)))
+        >>> len(list(Interval(Date(2015,1,3), None).b.series(window=3)))
         3
-        >>> len(list(Interval(Date(2015,1,3), Date(2015,1,10)).business().series()))
+        >>> len(list(Interval(Date(2015,1,3), Date(2015,1,10)).b.series()))
         5
-        >>> len(list(Interval(Date(2015,1,3), None).business().series(window=5)))
+        >>> len(list(Interval(Date(2015,1,3), None).b.series(window=5)))
         5
         """
         window = abs(int(window))
@@ -1364,9 +1372,9 @@ class Interval:
         4
         >>> Interval(Date.parse('2018/9/10'), Date.parse('2018/9/6')).days()
         -4
-        >>> Interval(Date.parse('2018/9/6'), Date.parse('2018/9/10')).business().days()
+        >>> Interval(Date.parse('2018/9/6'), Date.parse('2018/9/10')).b.days()
         2
-        >>> Interval(Date.parse('2018/9/10'), Date.parse('2018/9/6')).business().days()
+        >>> Interval(Date.parse('2018/9/10'), Date.parse('2018/9/6')).b.days()
         -2
         """
         assert self.begdate
