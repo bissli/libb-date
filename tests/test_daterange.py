@@ -1,5 +1,6 @@
 import pytest
 from asserts import assert_raises
+
 from date import Interval, IntervalError
 
 

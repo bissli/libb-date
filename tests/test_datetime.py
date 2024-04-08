@@ -4,8 +4,9 @@ import pickle
 import pendulum
 import pytest
 from asserts import assert_equal, assert_false, assert_not_equal, assert_true
-from date import Date, DateTime, Time
 from pendulum.tz import Timezone
+
+from date import Date, DateTime, Time
 
 
 def test_add():

@@ -5,6 +5,7 @@ import pickle
 import pendulum
 import pytest
 from asserts import assert_equal
+
 from date import NYSE, Date, WeekDay, to_date
 
 

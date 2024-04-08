@@ -17,17 +17,8 @@ import pandas as pd
 import pandas_market_calendars as mcal
 import pendulum
 from dateutil import parser
-from typing_extensions import (
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Self,
-    Set,
-    Tuple,
-    Type,
-    Union,
-)
+from typing_extensions import Callable, Dict, List, Optional, Self, Set, Tuple
+from typing_extensions import Type, Union
 
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
