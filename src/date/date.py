@@ -1221,7 +1221,7 @@ class Interval:
         return self.business()
 
     def entity(self, e: Type[NYSE] = NYSE) -> Self:
-        _self._entity = e
+        self._entity = e
         if self.begdate:
             self.enddate._entity = e
         if self.enddate:
