@@ -6,7 +6,7 @@ import pytest
 from asserts import assert_equal, assert_false, assert_not_equal, assert_true
 from pendulum.tz import Timezone
 
-from date import Date, DateTime, Time
+from date import Date, DateTime, Time, now
 
 
 def test_add():
@@ -88,6 +88,12 @@ def test_pickle():
         d_ = pickle.load(f)
 
     assert_equal(d, d_)
+
+
+def test_now():
+    """Managed to create a terrible bug where now returned today()
+    """
+    assert_not_equal(now(), pendulum.today())
 
 
 if __name__ == '__main__':
