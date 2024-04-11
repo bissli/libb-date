@@ -1191,7 +1191,7 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
 def now():
     """Get current datetime
     """
-    return DateTime(pendulum.today())
+    return DateTime(pendulum.now())
 
 
 class IntervalError(AttributeError):
