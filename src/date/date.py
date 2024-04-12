@@ -17,8 +17,8 @@ import pandas as pd
 import pandas_market_calendars as mcal
 import pendulum
 from dateutil import parser
-from typing_extensions import Callable, Dict, List, Optional, Self, Set, Tuple
-from typing_extensions import Type, Union
+from typing import Self
+from collections.abc import Callable
 
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
@@ -47,7 +47,7 @@ __all__ = [
     ]
 
 
-def timezone(name:str='US/Eastern'):
+def timezone(name:str = 'US/Eastern'):
     """Simple wrapper to convert name to timezone"""
     return pendulum.tz.Timezone(name)
 
@@ -98,21 +98,21 @@ DATEMATCH = r'^(?P<d>N|T|Y|P|M)(?P<n>[-+]?\d+)?(?P<b>b?)?$'
 
 
 def is_dateish(x):
-    return x.__class__ in (datetime.date, pendulum.Date, Date)
+    return x.__class__ in {datetime.date, pendulum.Date, Date}
 
 
 def is_datetimeish(x):
-    return x.__class__ in (datetime.datetime, pendulum.DateTime, DateTime)
+    return x.__class__ in {datetime.datetime, pendulum.DateTime, DateTime}
 
 
-def expect(func, typ: Type[datetime.date], exclkw: bool = False) -> Callable:
+def expect(func, typ: type[datetime.date], exclkw: bool = False) -> Callable:
     """Decorator to force input type of date/datetime inputs
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
         args = list(args)
         for i, arg in enumerate(args):
-            if isinstance(arg, (datetime.date, datetime.datetime)):
+            if isinstance(arg, datetime.date | datetime.datetime):
                 if typ == datetime.datetime and not is_datetimeish(arg):
                     args[i] = DateTime.parse(arg)
                     continue
@@ -120,7 +120,7 @@ def expect(func, typ: Type[datetime.date], exclkw: bool = False) -> Callable:
                     args[i] = Date.parse(arg)
         if not exclkw:
             for k, v in kwargs.items():
-                if isinstance(v, (datetime.date, datetime.datetime)):
+                if isinstance(v, datetime.date | datetime.datetime):
                     if typ == datetime.datetime and not is_datetimeish(v):
                         kwargs[k] = DateTime.parse(v)
                         continue
@@ -137,17 +137,17 @@ expect_datetime = partial(expect, typ=datetime.datetime)
 def type_class(typ, obj):
     if typ:
         return typ
-    if obj.__class__ in (datetime.datetime, pendulum.DateTime, DateTime):
+    if obj.__class__ in {datetime.datetime, pendulum.DateTime, DateTime}:
         return DateTime
-    if obj.__class__ in (datetime.date, pendulum.Date, Date):
+    if obj.__class__ in {datetime.date, pendulum.Date, Date}:
         return Date
     raise ValueError(f'Unknown type {typ}')
 
 
 def parent_params(cls):
-    if cls in (datetime.date, pendulum.Date, Date):
+    if cls in {datetime.date, pendulum.Date, Date}:
         return ('year', 'month', 'day')
-    if cls in (datetime.datetime, pendulum.DateTime, DateTime):
+    if cls in {datetime.datetime, pendulum.DateTime, DateTime}:
         return ('year', 'month', 'day', 'hour', 'minute',
                 'second', 'microsecond', 'tzinfo')
     raise ValueError(f'Unknown cls {cls}')
@@ -243,12 +243,12 @@ class NYSE(Entity):
 
     @staticmethod
     @lru_cache
-    def business_days(begdate=BEGDATE, enddate=ENDDATE) -> Set[datetime.date]:
+    def business_days(begdate=BEGDATE, enddate=ENDDATE) -> set[datetime.date]:
         return {d.date() for d in NYSE.calendar.valid_days(begdate, enddate)}
 
     @staticmethod
     @lru_cache
-    def business_hours(begdate=BEGDATE, enddate=ENDDATE) -> Dict:
+    def business_hours(begdate=BEGDATE, enddate=ENDDATE) -> dict:
         df = NYSE.calendar.schedule(begdate, enddate, tz=EST)
         open_close = [(o.to_pydatetime(), c.to_pydatetime())
                       for o, c in zip(df.market_open, df.market_close)]
@@ -256,7 +256,7 @@ class NYSE(Entity):
 
     @staticmethod
     @lru_cache
-    def business_holidays(begdate=BEGDATE, enddate=ENDDATE) -> Set:
+    def business_holidays(begdate=BEGDATE, enddate=ENDDATE) -> set:
         return {d.date() for d in map(pd.to_datetime, NYSE.calendar.holidays().holidays)}
 
 
@@ -269,7 +269,7 @@ def parse():
 class PendulumBusinessDateMixin:
 
     _pendulum = pendulum.Date
-    _entity: Type[NYSE] = NYSE
+    _entity: type[NYSE] = NYSE
     _business: bool = False
 
     def business(self) -> Self:
@@ -280,12 +280,12 @@ class PendulumBusinessDateMixin:
     def b(self) -> Self:
         return self.business()
 
-    def entity(self, e: Type[NYSE] = NYSE) -> Self:
+    def entity(self, e: type[NYSE] = NYSE) -> Self:
         self._entity = e
         return self
 
     @store_entity
-    def add(self, years: int=0, months: int=0, weeks: int=0, days: int=0, **kwargs) -> Self:
+    def add(self, years: int = 0, months: int = 0, weeks: int = 0, days: int = 0, **kwargs) -> Self:
         """Add wrapper
         If not business use Pendulum
         If business assume only days (for now) and use local logic
@@ -304,7 +304,7 @@ class PendulumBusinessDateMixin:
         return self._pendulum.add(self, years, months, weeks, days, **kwargs)
 
     @store_entity
-    def subtract(self, years: int=0, months: int=0, weeks: int=0, days: int=0, **kwargs) -> Self:
+    def subtract(self, years: int = 0, months: int = 0, weeks: int = 0, days: int = 0, **kwargs) -> Self:
         """Subtract wrapper
         If not business use Pendulum
         If business assume only days (for now) and use local logic
@@ -556,11 +556,11 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
     @classmethod
     def parse(
         cls,
-        s: Union[str, datetime.date, datetime.datetime, pd.Timestamp, np.datetime64],
+        s: str | datetime.date | datetime.datetime | pd.Timestamp | np.datetime64,
         fmt: str = None,
         raise_err: bool = False,
         shortcodes: bool = True
-    ) -> Optional[Self]:
+    ) -> Self | None:
         """Convert a string to a date handling many different formats.
 
         previous business day accessed with 'P'
@@ -671,7 +671,7 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
 
         if s.__class__ == Date:
             return s
-        if isinstance(s, (np.datetime64, pd.Timestamp)):
+        if isinstance(s, np.datetime64 | pd.Timestamp):
             s = DateTime.parse(s)
         if isinstance(s, datetime.datetime):
             if any([s.hour, s.minute, s.second, s.microsecond]):
@@ -1108,9 +1108,9 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
     @classmethod
     def parse(
         cls,
-        s: Union[str, datetime.date, datetime.datetime, pd.Timestamp, np.datetime64],
+        s: str | datetime.date | datetime.datetime | pd.Timestamp | np.datetime64,
         raise_err=False,
-    ) -> Optional[Self]:
+    ) -> Self | None:
         """Thin layer on Date parser and our custom `Date.parse` and `to_time`
 
         Assume UTC, convert to EST
@@ -1159,7 +1159,7 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         if isinstance(s, np.datetime64):
             dtm = np.datetime64(s, 'us').astype(datetime.datetime)
             return DateTime(pendulum.instance(dtm))
-        if isinstance(s, (int, float)):
+        if isinstance(s, int | float):
             iso = datetime.datetime.fromtimestamp(s).isoformat()
             return DateTime.parse(iso).replace(tzinfo=LCL)
         if isinstance(s, datetime.datetime):
@@ -1209,10 +1209,10 @@ class IntervalError(AttributeError):
 class Interval:
 
     _business: bool = False
-    _entity: Type[NYSE] = NYSE
+    _entity: type[NYSE] = NYSE
 
     @expect_date
-    def __init__(self, begdate: Date=None, enddate: Date=None):
+    def __init__(self, begdate: Date = None, enddate: Date = None):
         self.begdate = Date.parse(begdate)
         self.enddate = Date.parse(enddate)
 
@@ -1228,7 +1228,7 @@ class Interval:
     def b(self) -> Self:
         return self.business()
 
-    def entity(self, e: Type[NYSE] = NYSE) -> Self:
+    def entity(self, e: type[NYSE] = NYSE) -> Self:
         self._entity = e
         if self.begdate:
             self.enddate._entity = e
@@ -1236,7 +1236,7 @@ class Interval:
             self.enddate._entity = e
         return self
 
-    def range(self, window=0) -> Tuple[datetime.date, datetime.date]:
+    def range(self, window=0) -> tuple[datetime.date, datetime.date]:
         """Set date ranges based on begdate, enddate and window.
 
         The combinations are as follows:
@@ -1282,7 +1282,7 @@ class Interval:
 
         return begdate, enddate
 
-    def is_business_day_series(self) -> List[bool]:
+    def is_business_day_series(self) -> list[bool]:
         """Is business date range.
 
         >>> list(Interval(Date(2018, 11, 19), Date(2018, 11, 25)).is_business_day_series())
@@ -1351,7 +1351,7 @@ class Interval:
                 yield thedate
             thedate = thedate.add(days=1)
 
-    def end_of_series(self, unit='month') -> List[Date]:
+    def end_of_series(self, unit='month') -> list[Date]:
         """Return a series between and inclusive of begdate and enddate.
 
         >>> Interval(Date(2018, 1, 5), Date(2018, 4, 5)).end_of_series('month')
