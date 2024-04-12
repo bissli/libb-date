@@ -94,6 +94,7 @@ def test_now():
     """Managed to create a terrible bug where now returned today()
     """
     assert_not_equal(now(), pendulum.today())
+    DateTime.now()  # basic check
 
 
 if __name__ == '__main__':

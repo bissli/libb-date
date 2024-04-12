@@ -753,6 +753,10 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         if raise_err:
             raise ValueError('Failed to parse date: %s', s)
 
+    @classmethod
+    def today(cls):
+        return cls(pendulum.today().date())
+
     def isoweek(self):
         """Week number 1-52 following ISO week-numbering
 
@@ -1089,6 +1093,10 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         """Translate a datetime object into unix seconds since epoch
         """
         return time.mktime(self.timetuple())
+
+    @classmethod
+    def now(cls):
+        return cls(pendulum.now())
 
     def rfc3339(self):
         """
@@ -1603,12 +1611,12 @@ END:VCALENDAR
 
 # apply any missing Date functions
 for func in ('closest', 'farthest', 'nth_of', 'average', 'fromtimestamp',
-             'fromordinal', 'replace', 'today'):
+             'fromordinal', 'replace'):
     setattr(DateTime, func, store_entity(getattr(pendulum.Date, func), typ=Date))
 
 # apply any missing DateTime functions
 for func in ('astimezone', 'combine', 'date', 'fromordinal',
-             'in_timezone', 'in_tz', 'instance', 'now', 'replace',
+             'in_timezone', 'in_tz', 'instance', 'replace',
              'strptime', 'time', 'today', 'utcfromtimestamp', 'utcnow'):
     setattr(DateTime, func, store_entity(getattr(pendulum.DateTime, func), typ=DateTime))
 
