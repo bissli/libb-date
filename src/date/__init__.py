@@ -23,8 +23,11 @@ from date.date import now
 from date.date import parse
 from date.date import prefer_native_timezone
 from date.date import prefer_utc_timezone
-from date.date import timezone
+from date.date import Timezone
 from date.date import today
+
+
+timezone = Timezone
 
 
 def date(*args, **kwargs):

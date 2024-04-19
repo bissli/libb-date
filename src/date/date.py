@@ -9,16 +9,16 @@ import warnings
 import zoneinfo
 from abc import ABC, abstractmethod
 from collections import namedtuple
+from collections.abc import Callable
 from enum import IntEnum
 from functools import lru_cache, partial, wraps
+from typing import Self
 
 import numpy as np
 import pandas as pd
 import pandas_market_calendars as mcal
 import pendulum
 from dateutil import parser
-from typing import Self
-from collections.abc import Callable
 
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
@@ -30,12 +30,12 @@ __all__ = [
     'Interval',
     'IntervalError',
     'Time',
+    'Timezone',
     'WeekDay',
     'now',
     'today',
     'parse',
     'LCL',
-    'timezone',
     'expect_native_timezone',
     'expect_utc_timezone',
     'prefer_native_timezone',
@@ -47,14 +47,14 @@ __all__ = [
     ]
 
 
-def timezone(name:str = 'US/Eastern'):
+def Timezone(name:str = 'US/Eastern'):
     """Simple wrapper to convert name to timezone"""
     return pendulum.tz.Timezone(name)
 
 
-UTC = timezone('UTC')
-GMT = timezone('GMT')
-EST = timezone('US/Eastern')
+UTC = Timezone('UTC')
+GMT = Timezone('GMT')
+EST = Timezone('US/Eastern')
 LCL = pendulum.tz.Timezone(pendulum.tz.get_local_timezone().name)
 
 
