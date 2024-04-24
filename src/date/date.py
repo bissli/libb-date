@@ -757,6 +757,11 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
     def today(cls):
         return cls(pendulum.today().date())
 
+    def to_date(self):
+        """Simple drop to datetime.date
+        """
+        return datetime.date(self.year, self.month, self.day)
+
     def isoweek(self):
         """Week number 1-52 following ISO week-numbering
 
@@ -1033,6 +1038,12 @@ class Time(pendulum.Time):
         if raise_err:
             raise ValueError('Failed to parse time: %s', s)
 
+    def to_time(self):
+        """Simple drop to datetime.time
+        """
+        return datetime.time(self.hour, self.minute, self.second,
+                             self.microsecond, self.tzinfo)
+
 
 def datetime_to_tuple(obj: pendulum.DateTime):
     return (obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second,
@@ -1097,6 +1108,12 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
     @classmethod
     def now(cls):
         return cls(pendulum.now())
+
+    def to_datetime(self):
+        """Simple drop to datetime.datetime
+        """
+        return datetime.datetime(self.year, self.month, self.day, self.hour,
+                                 self.minute, self.second, self.microsecond, self.tzinfo)
 
     def rfc3339(self):
         """
