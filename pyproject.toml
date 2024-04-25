@@ -15,9 +15,10 @@ wrapt = "*"
 typing-extensions = "*"
 regex = "*"
 
+# = test
 asserts = { version = "*", optional = true }
 pytest = { version = "*", optional = true }
-pdbpp = { git = "https://github.com/pdbpp/pdbpp.git", rev = "master", optional = true }
+pdbpp = { git = "https://github.com/pdbpp/pdbpp", optional = true }
 
 [tool.poetry.extras]
 test = [
