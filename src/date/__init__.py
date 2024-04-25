@@ -12,6 +12,9 @@ from date.date import Entity
 from date.date import Interval
 from date.date import IntervalError
 from date.date import LCL
+from date.date import EST
+from date.date import GMT
+from date.date import UTC
 from date.date import NYSE
 from date.date import Time
 from date.date import WeekDay
