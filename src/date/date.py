@@ -20,6 +20,8 @@ import pandas_market_calendars as mcal
 import pendulum
 from dateutil import parser
 
+from libb import is_null
+
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
 logger = logging.getLogger(__name__)
@@ -667,7 +669,7 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
                 yy = today().year
             return yy
 
-        if not s:
+        if not s or is_null(s):
             if raise_err:
                 raise ValueError('Empty value')
             return
@@ -1002,7 +1004,7 @@ class Time(pendulum.Time):
             except Exception:
                 return False
 
-        if not s:
+        if not s or is_null(s):
             if raise_err:
                 raise ValueError('Empty value')
             return
@@ -1167,7 +1169,7 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         >>> _.month, _.day, _.hour, _.minute
         (9, 27, 17, 11)
         """
-        if not s:
+        if not s or is_null(s):
             if raise_err:
                 raise ValueError('Empty value')
             return
