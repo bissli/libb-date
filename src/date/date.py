@@ -669,7 +669,7 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
                 yy = today().year
             return yy
 
-        if not s or is_null(s):
+        if is_null(s) or s == '':
             if raise_err:
                 raise ValueError('Empty value')
             return
@@ -1004,7 +1004,7 @@ class Time(pendulum.Time):
             except Exception:
                 return False
 
-        if not s or is_null(s):
+        if is_null(s) or s == '':
             if raise_err:
                 raise ValueError('Empty value')
             return
@@ -1169,7 +1169,7 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         >>> _.month, _.day, _.hour, _.minute
         (9, 27, 17, 11)
         """
-        if not s or is_null(s):
+        if is_null(s) or s == '':
             if raise_err:
                 raise ValueError('Empty value')
             return
