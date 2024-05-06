@@ -1111,8 +1111,8 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         return time.mktime(self.timetuple())
 
     @classmethod
-    def now(cls):
-        return cls(pendulum.now())
+    def now(cls, tz=None):
+        return cls(pendulum.now(tz))
 
     def to_datetime(self):
         """Simple drop to datetime.datetime
@@ -1218,10 +1218,10 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
             raise ValueError('Invalid date-time format: ' + s)
 
 
-def now():
+def now(tz=None):
     """Get current datetime
     """
-    return DateTime(pendulum.now())
+    return DateTime(pendulum.now(tz))
 
 
 class IntervalError(AttributeError):
