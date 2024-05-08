@@ -52,7 +52,7 @@ __all__ = [
     ]
 
 
-def Timezone(name:str = 'US/Eastern'):
+def Timezone(name:str = 'US/Eastern') -> zoneinfo.ZoneInfo:
     """Simple wrapper to convert name to timezone"""
     return pendulum.tz.Timezone(name)
 
@@ -102,6 +102,20 @@ MONTH_SHORTNAME = {
 DATEMATCH = r'^(?P<d>N|T|Y|P|M)(?P<n>[-+]?\d+)?(?P<b>b?)?$'
 
 
+def caller_entity(func):
+    """Helper to get current entity from function"""
+    # general frame args inspect
+    frame = inspect.currentframe()
+    outer_frames = inspect.getouterframes(frame)
+    caller_frame = outer_frames[1][0]
+    args = inspect.getargvalues(caller_frame)
+    # find our entity
+    param = inspect.signature(func).parameters.get('entity')
+    default = param.default if param else NYSE
+    entity = args.locals['kwargs'].get('entity', default)
+    return entity
+
+
 def is_dateish(x):
     return x.__class__ in {datetime.date, pendulum.Date, Date}
 
@@ -137,6 +151,7 @@ def expect(func, typ: type[datetime.date], exclkw: bool = False) -> Callable:
 
 expect_date = partial(expect, typ=datetime.date)
 expect_datetime = partial(expect, typ=datetime.datetime)
+expect_time = partial(expect, typ=datetime.time)
 
 
 def type_class(typ, obj):
@@ -655,9 +670,9 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
             if s == 'Y':
                 return today().subtract(days=1)
             if s == 'P':
-                return Date().business().subtract(days=1)
+                return cls().business().subtract(days=1)
             if s == 'M':
-                return Date().start_of('month').subtract(days=1)
+                return cls().start_of('month').subtract(days=1)
 
         def year(m):
             try:
@@ -681,16 +696,16 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         if isinstance(s, datetime.datetime):
             if any([s.hour, s.minute, s.second, s.microsecond]):
                 logger.debug('Forced datetime with non-zero time to date')
-            return Date(s.year, s.month, s.day)
+            return cls(s.year, s.month, s.day)
         if isinstance(s, datetime.date):
-            return Date(s.year, s.month, s.day)
+            return cls(s.year, s.month, s.day)
         if not isinstance(s, str):
             raise TypeError(f'Invalid type for date column: {s.__class__}')
 
         # always use the format if specified
         if fmt:
             try:
-                return Date(*time.strptime(s, fmt)[:3])
+                return cls(*time.strptime(s, fmt)[:3])
             except ValueError:
                 logger.debug('Format string passed to strptime failed')
 
@@ -715,7 +730,7 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
                 return today().subtract(days=1)
 
         try:
-            return Date(parser.parse(s).date())
+            return cls(parser.parse(s).date())
         except (TypeError, ValueError):
             logger.debug('Date parser failed .. trying our custom parsers')
 
@@ -732,7 +747,7 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
                 mm = int(m.group('m'))
                 dd = int(m.group('d'))
                 yy = year(m)
-                return Date(yy, mm, dd)
+                return cls(yy, mm, dd)
 
         # Regex with Month Name
         exps = (
@@ -753,7 +768,7 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
                     continue
                 dd = int(m.group('d'))
                 yy = year(m)
-                return Date(yy, mm, dd)
+                return cls(yy, mm, dd)
 
         if raise_err:
             raise ValueError('Failed to parse date: %s', s)
@@ -949,6 +964,38 @@ def today():
 
 class Time(pendulum.Time):
 
+    @expect_time
+    def __new__(cls, *args, **kwargs):
+        """
+        >>> Time(12, 30, 1)
+        Time(12, 30, 1, tzinfo=Timezone('UTC'))
+        >>> Time('12:30:01 AM')
+        Time(12, 30, 1, tzinfo=Timezone('UTC'))
+
+        >>> d = Time(None).replace(microsecond=0)
+        >>> assert d == pendulum.now().time().replace(microsecond=0)
+
+        >>> d = Time().replace(microsecond=0)
+        >>> assert d == pendulum.now().time().replace(microsecond=0)
+        """
+        this = None
+        if args and isinstance(args[0], str):
+            return Time.parse(*args, **kwargs)
+        if len(args) == 0:
+            return pendulum.now().time().replace(tzinfo=LCL)
+        if len(args) == 1 and args[0] is None:
+            return pendulum.now().time().replace(tzinfo=LCL)
+        if len(args) == 1 and isinstance(args[0], datetime.time | datetime.datetime):
+            this = time_to_dict(args[0])
+        if len(args) >= 2:
+            this = time_to_dict(*args)
+        if this is not None:
+            tzinfo = _get_tzinfo(*args, **kwargs)
+            kwargs = {**kwargs, **this, 'tzinfo': tzinfo or UTC}
+            this = []
+            return super(pendulum.Time, cls).__new__(cls, *this, **kwargs)
+        raise ValueError(f'Incompatible arguments for DateTime: {args}')
+
     @staticmethod
     @prefer_utc_timezone
     def parse(s, fmt=None, raise_err=False):
@@ -1012,9 +1059,9 @@ class Time(pendulum.Time):
         if s.__class__ == Time:
             return s
         if isinstance(s, datetime.datetime):
-            return pendulum.instance(s).time()
+            return Time(pendulum.instance(s).time())
         if isinstance(s, datetime.time):
-            return pendulum.instance(s)
+            return Time(pendulum.instance(s))
 
         if fmt:
             return Time(*time.strptime(s, fmt)[3:6])
@@ -1032,11 +1079,11 @@ class Time(pendulum.Time):
                 uu = micros(m)
                 if is_pm(m) and hh < 12:
                     hh += 12
-                return Time(hh, mm, ss, uu * 1000).replace(tzinfo=UTC)
+                return Time(hh, mm, ss, uu * 1000)
         logger.debug('Custom parsers failed, trying pendulum parser')
 
         try:
-            return parser.parse(s).time()
+            return Time(parser.parse(s).time())
         except (TypeError, ValueError):
             pass
 
@@ -1046,19 +1093,44 @@ class Time(pendulum.Time):
     def to_time(self):
         """Simple drop to datetime.time
         """
-        return datetime.time(self.hour, self.minute, self.second,
-                             self.microsecond, self.tzinfo)
+        return time(self.hour, self.minute, self.second, self.microsecond, self.tzinfo)
 
 
-def datetime_to_tuple(obj: pendulum.DateTime):
-    return (obj.year, obj.month, obj.day, obj.hour, obj.minute, obj.second,
-            obj.microsecond, obj.tzinfo)
+def time_to_dict(*args):
+    keys = ('hour', 'minute', 'second', 'microsecond')
+    d = {k: 0 for k in keys}
+    if isinstance(args[0], datetime.time):
+        for k in keys:
+            d[k] = getattr(args[0], k, 0)
+    else:
+        _args = list(reversed(args))
+        for k in keys:
+            with contextlib.suppress(IndexError):
+                d[k] = _args.pop()
+    return d
 
 
-def _has_tzinfo(*args, **kw):
-    zinfo = any(isinstance(a, zoneinfo.ZoneInfo) for a in args)
-    tzinfo = 'tzinfo' in kw
-    return zinfo or tzinfo
+def datetime_to_dict(*args):
+    keys = ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond')
+    d = {k: 0 for k in keys}
+    if isinstance(args[0], datetime.datetime):
+        for k in keys:
+            d[k] = getattr(args[0], k, 0)
+    else:
+        _args = list(reversed(args))
+        for k in keys:
+            with contextlib.suppress(IndexError):
+                d[k] = _args.pop()
+    return d
+
+
+def _get_tzinfo(*args, **kw):
+    for arg in args:
+        if isinstance(arg, datetime.datetime | datetime.time):
+            return arg.tzinfo
+        if isinstance(arg, zoneinfo.ZoneInfo):
+            return arg
+    return kw.get('tzinfo', kw.get('tz'))
 
 
 class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
@@ -1080,29 +1152,33 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
         >>> DateTime(Date(2022, 1, 1))
         DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
+        >>> DateTime(Time(4, 4, 21))
+        DateTime(..., 4, 4, 21, tzinfo=Timezone('UTC'))
 
-        >>> d = DateTime(None)
-        >>> assert d == pendulum.today()
+        >>> d = DateTime(None).replace(microsecond=0)
+        >>> assert d == pendulum.now().replace(microsecond=0)
 
-        >>> d = DateTime()
-        >>> assert d == pendulum.today()
+        >>> d = DateTime().replace(microsecond=0)
+        >>> assert d == pendulum.now().replace(microsecond=0)
         """
         this = None
         if args and isinstance(args[0], str):
             return DateTime.parse(*args, **kwargs)
         if len(args) == 0:
-            this = datetime_to_tuple(pendulum.today())
+            return pendulum.now()
         if len(args) == 1 and args[0] is None:
-            this = datetime_to_tuple(pendulum.today())
+            return pendulum.now()
         if len(args) == 1 and isinstance(args[0], datetime.datetime):
-            this = datetime_to_tuple(args[0])
+            this = datetime_to_dict(args[0])
+        if len(args) == 1 and isinstance(args[0], datetime.time):
+            return DateTime.combine(Date.today(), args[0], kwargs.get('tzinfo'))
         if len(args) >= 3:
-            this = args
-            if not _has_tzinfo(*args, **kwargs):
-                kwargs['tzinfo'] = LCL
+            this = datetime_to_dict(*args)
         if this is not None:
-            self = super(pendulum.DateTime, cls).__new__(cls, *this, **kwargs)
-            return self
+            tzinfo = _get_tzinfo(*args, **kwargs)
+            kwargs = {**kwargs, **this, 'tzinfo': tzinfo or LCL}
+            this = []
+            return super(pendulum.DateTime, cls).__new__(cls, *this, **kwargs)
         raise ValueError(f'Incompatible arguments for DateTime: {args}')
 
     def epoch(self):
@@ -1113,6 +1189,18 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
     @classmethod
     def now(cls, tz=None):
         return cls(pendulum.now(tz))
+
+    @classmethod
+    def combine(
+        cls,
+        date: datetime.date,
+        time: datetime.time,
+        tzinfo: zoneinfo.ZoneInfo | None = None,
+    ) -> Self:
+        """Combine date and time (*behaves differently from Pendulum `combine`*).
+        """
+        _tzinfo = tzinfo or time.tzinfo
+        return DateTime(datetime.datetime.combine(date, time, tzinfo=_tzinfo))
 
     def to_datetime(self):
         """Simple drop to datetime.datetime
@@ -1177,23 +1265,23 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         if s.__class__ == DateTime:
             return s
         if isinstance(s, pd.Timestamp):
-            return DateTime(pendulum.instance(s.to_pydatetime()))
+            return cls(pendulum.instance(s.to_pydatetime()))
         if isinstance(s, np.datetime64):
             dtm = np.datetime64(s, 'us').astype(datetime.datetime)
-            return DateTime(pendulum.instance(dtm))
+            return cls(pendulum.instance(dtm))
         if isinstance(s, int | float):
             iso = datetime.datetime.fromtimestamp(s).isoformat()
-            return DateTime.parse(iso).replace(tzinfo=LCL)
+            return cls.parse(iso).replace(tzinfo=LCL)
         if isinstance(s, datetime.datetime):
-            return DateTime(s)
+            return cls(s)
         if isinstance(s, datetime.date):
             logger.debug('Forced date without time to datetime')
-            return DateTime(s.year, s.month, s.day, tzinfo=LCL)
+            return cls(s.year, s.month, s.day, tzinfo=LCL)
         if not isinstance(s, str):
             raise TypeError(f'Invalid type for date column: {s.__class__}')
 
         try:
-            return DateTime(pendulum.instance(parser.parse(s)))
+            return cls(pendulum.instance(parser.parse(s)))
         except (TypeError, ValueError) as err:
             logger.debug('Date parser failed .. trying our custom parsers')
 
@@ -1203,16 +1291,16 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
                 d = Date.parse(bits[0])
                 t = Time.parse(bits[1])
                 if d is not None and t is not None:
-                    return DateTime.combine(d, t)
+                    return DateTime.combine(d, t, LCL)
 
         d = Date.parse(s)
         if d is not None:
-            return DateTime(d.year, d.month, d.day, 0, 0, 0)
+            return cls(d.year, d.month, d.day, 0, 0, 0)
 
         current = today()
         t = Time.parse(s)
         if t is not None:
-            return DateTime.combine(current, t)
+            return cls.combine(current, t, LCL)
 
         if raise_err:
             raise ValueError('Invalid date-time format: ' + s)
@@ -1637,9 +1725,9 @@ for func in ('closest', 'farthest', 'nth_of', 'average', 'fromtimestamp',
     setattr(Date, func, store_entity(getattr(pendulum.Date, func), typ=Date))
 
 # apply any missing DateTime functions
-for func in ('astimezone', 'combine', 'date', 'fromordinal',
+for func in ('astimezone', 'date', 'fromordinal',
              'in_timezone', 'in_tz', 'instance', 'replace',
-             'strptime', 'time', 'today', 'utcfromtimestamp', 'utcnow'):
+             'strptime', 'time', 'today', 'utcfromtimestamp', 'utcnow', 'time'):
     setattr(DateTime, func, store_entity(getattr(pendulum.DateTime, func), typ=DateTime))
 
 

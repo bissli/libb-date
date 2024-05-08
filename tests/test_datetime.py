@@ -51,9 +51,11 @@ def test_is_business_day():
 
 
 def test_combine():
+    """When combining, ignore default Time parse to UTC"""
 
     date = Date(2000, 1, 1)
-    time = Time.parse('9:30 AM')
+    time = Time.parse('9:30 AM') # default UTC
+
     d = DateTime.combine(date, time)
     assert isinstance(d, DateTime)
     assert d._business is False
