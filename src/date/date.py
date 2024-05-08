@@ -1634,7 +1634,7 @@ END:VCALENDAR
 # apply any missing Date functions
 for func in ('closest', 'farthest', 'nth_of', 'average', 'fromtimestamp',
              'fromordinal', 'replace'):
-    setattr(DateTime, func, store_entity(getattr(pendulum.Date, func), typ=Date))
+    setattr(Date, func, store_entity(getattr(pendulum.Date, func), typ=Date))
 
 # apply any missing DateTime functions
 for func in ('astimezone', 'combine', 'date', 'fromordinal',
