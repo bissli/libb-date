@@ -15,12 +15,12 @@ wrapt = "*"
 typing-extensions = "*"
 regex = "*"
 
-libb-util = { git = "https://github.com/bissli/libb-util", extras = ['pandas'] }
+libb-util = { git = "https://github.com/bissli/libb-util", extras = ['pandas'], rev = "master" }
 
 # = test
 asserts = { version = "*", optional = true }
 pytest = { version = "*", optional = true }
-pdbpp = { git = "https://github.com/pdbpp/pdbpp", optional = true }
+pdbpp = { git = "https://github.com/pdbpp/pdbpp", optional = true, rev = "master" }
 
 [tool.poetry.extras]
 test = [
