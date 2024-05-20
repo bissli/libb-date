@@ -1099,7 +1099,7 @@ class Time(pendulum.Time):
 def time_to_dict(*args):
     keys = ('hour', 'minute', 'second', 'microsecond')
     d = {k: 0 for k in keys}
-    if isinstance(args[0], datetime.time):
+    if isinstance(args[0], datetime.time | datetime.datetime):
         for k in keys:
             d[k] = getattr(args[0], k, 0)
     else:
@@ -1187,7 +1187,7 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         return time.mktime(self.timetuple())
 
     @classmethod
-    def now(cls, tz=None):
+    def now(cls, tz=LCL):
         return cls(pendulum.now(tz))
 
     @classmethod
@@ -1214,6 +1214,19 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         '2014-10-31T10:55:00+00:00'
         """
         return self.isoformat()
+
+    def time(self):
+        """Extract time from self (preserve timezone)
+
+        >>> d = DateTime(2022, 1, 1, 12, 30, 15, tzinfo=EST)
+        >>> d.time()
+        Time(12, 30, 15, tzinfo=Timezone('US/Eastern'))
+
+        >>> d = DateTime(2022, 1, 1, 12, 30, 15, tzinfo=UTC)
+        >>> d.time()
+        Time(12, 30, 15, tzinfo=Timezone('UTC'))
+        """
+        return Time(self, tzinfo=self.tzinfo)
 
     @classmethod
     def parse(
@@ -1306,7 +1319,7 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
             raise ValueError('Invalid date-time format: ' + s)
 
 
-def now(tz=None):
+def now(tz=LCL):
     """Get current datetime
     """
     return DateTime(pendulum.now(tz))
@@ -1566,9 +1579,7 @@ class Interval:
             if calendar.isleap(date1.year) and (date1 < mar1_date1_year) and (date2 >= mar1_date1_year):
                 return True
             mar1_date2_year = Date(date2.year, 3, 1)
-            if calendar.isleap(date2.year) and (date2 >= mar1_date2_year) and (date1 < mar1_date2_year):
-                return True
-            return False
+            return bool(calendar.isleap(date2.year) and date2 >= mar1_date2_year and date1 < mar1_date2_year)
 
         def appears_lte_one_year(date1, date2):
             """Returns True if date1 and date2 "appear" to be 1 year or less apart.
@@ -1578,11 +1589,7 @@ class Interval:
             """
             if date1.year == date2.year:
                 return True
-            if ((date1.year + 1) == date2.year) and (
-                (date1.month > date2.month) or ((date1.month == date2.month) and (date1.day >= date2.day))
-            ):
-                return True
-            return False
+            return bool(date1.year + 1 == date2.year and (date1.month > date2.month or date1.month == date2.month and date1.day >= date2.day))
 
         def basis0(date1, date2):
             # change day-of-month for purposes of calculation.
@@ -1727,7 +1734,7 @@ for func in ('closest', 'farthest', 'nth_of', 'average', 'fromtimestamp',
 # apply any missing DateTime functions
 for func in ('astimezone', 'date', 'fromordinal',
              'in_timezone', 'in_tz', 'instance', 'replace',
-             'strptime', 'time', 'today', 'utcfromtimestamp', 'utcnow', 'time'):
+             'strptime', 'today', 'utcfromtimestamp', 'utcnow'):
     setattr(DateTime, func, store_entity(getattr(pendulum.DateTime, func), typ=DateTime))
 
 
