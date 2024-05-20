@@ -102,18 +102,19 @@ MONTH_SHORTNAME = {
 DATEMATCH = r'^(?P<d>N|T|Y|P|M)(?P<n>[-+]?\d+)?(?P<b>b?)?$'
 
 
-def caller_entity(func):
-    """Helper to get current entity from function"""
-    # general frame args inspect
-    frame = inspect.currentframe()
-    outer_frames = inspect.getouterframes(frame)
-    caller_frame = outer_frames[1][0]
-    args = inspect.getargvalues(caller_frame)
-    # find our entity
-    param = inspect.signature(func).parameters.get('entity')
-    default = param.default if param else NYSE
-    entity = args.locals['kwargs'].get('entity', default)
-    return entity
+# def caller_entity(func):
+    # """Helper to get current entity from function"""
+    # # general frame args inspect
+    # import inspect
+    # frame = inspect.currentframe()
+    # outer_frames = inspect.getouterframes(frame)
+    # caller_frame = outer_frames[1][0]
+    # args = inspect.getargvalues(caller_frame)
+    # # find our entity
+    # param = inspect.signature(func).parameters.get('entity')
+    # default = param.default if param else NYSE
+    # entity = args.locals['kwargs'].get('entity', default)
+    # return entity
 
 
 def is_dateish(x):
@@ -263,21 +264,21 @@ class NYSE(Entity):
 
     @staticmethod
     @lru_cache
-    def business_days(begdate=BEGDATE, enddate=ENDDATE) -> set[datetime.date]:
-        return {d.date() for d in NYSE.calendar.valid_days(begdate, enddate)}
+    def business_days(begdate=BEGDATE, enddate=ENDDATE) -> set:
+        return {Date(d.date()) for d in NYSE.calendar.valid_days(begdate, enddate)}
 
     @staticmethod
     @lru_cache
     def business_hours(begdate=BEGDATE, enddate=ENDDATE) -> dict:
         df = NYSE.calendar.schedule(begdate, enddate, tz=EST)
-        open_close = [(o.to_pydatetime(), c.to_pydatetime())
+        open_close = [(DateTime(o.to_pydatetime()), DateTime(c.to_pydatetime()))
                       for o, c in zip(df.market_open, df.market_close)]
         return dict(zip(df.index.date, open_close))
 
     @staticmethod
     @lru_cache
     def business_holidays(begdate=BEGDATE, enddate=ENDDATE) -> set:
-        return {d.date() for d in map(pd.to_datetime, NYSE.calendar.holidays().holidays)}
+        return {Date(d.date()) for d in map(pd.to_datetime, NYSE.calendar.holidays().holidays)}
 
 
 def parse():
@@ -1190,6 +1191,12 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
     def now(cls, tz=LCL):
         return cls(pendulum.now(tz))
 
+    def today(self):
+        return Date(self.year, self.month, self.day)
+
+    def date(self):
+        return Date(self.year, self.month, self.day)
+
     @classmethod
     def combine(
         cls,
@@ -1732,9 +1739,8 @@ for func in ('closest', 'farthest', 'nth_of', 'average', 'fromtimestamp',
     setattr(Date, func, store_entity(getattr(pendulum.Date, func), typ=Date))
 
 # apply any missing DateTime functions
-for func in ('astimezone', 'date', 'fromordinal',
-             'in_timezone', 'in_tz', 'instance', 'replace',
-             'strptime', 'today', 'utcfromtimestamp', 'utcnow'):
+for func in ('astimezone', 'fromordinal', 'in_timezone', 'in_tz', 'instance',
+             'replace', 'strptime', 'utcfromtimestamp', 'utcnow'):
     setattr(DateTime, func, store_entity(getattr(pendulum.DateTime, func), typ=DateTime))
 
 
