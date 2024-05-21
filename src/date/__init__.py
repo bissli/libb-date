@@ -28,6 +28,7 @@ from date.date import prefer_native_timezone
 from date.date import prefer_utc_timezone
 from date.date import Timezone
 from date.date import today
+from date.business import *
 
 
 timezone = Timezone
@@ -99,4 +100,5 @@ __all__ = [
     'date',
     'datetime',
     'time'
+    'within_business_hours'
     ]

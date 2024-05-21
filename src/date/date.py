@@ -1166,9 +1166,9 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         if args and isinstance(args[0], str):
             return DateTime.parse(*args, **kwargs)
         if len(args) == 0:
-            return pendulum.now()
+            return super(pendulum.DateTime, cls).now()
         if len(args) == 1 and args[0] is None:
-            return pendulum.now()
+            return super(pendulum.DateTime, cls).now()
         if len(args) == 1 and isinstance(args[0], datetime.datetime):
             this = datetime_to_dict(args[0])
         if len(args) == 1 and isinstance(args[0], datetime.time):

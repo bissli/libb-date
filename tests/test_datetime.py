@@ -6,7 +6,7 @@ import pytest
 from asserts import assert_equal, assert_false, assert_not_equal, assert_true
 from pendulum.tz import Timezone
 
-from date import Date, DateTime, Time, now
+from date import NYSE, Date, DateTime, Time, now
 
 
 def test_add():
@@ -54,7 +54,7 @@ def test_combine():
     """When combining, ignore default Time parse to UTC"""
 
     date = Date(2000, 1, 1)
-    time = Time.parse('9:30 AM') # default UTC
+    time = Time.parse('9:30 AM')  # default UTC
 
     d = DateTime.combine(date, time)
     assert isinstance(d, DateTime)
@@ -97,6 +97,17 @@ def test_now():
     """
     assert_not_equal(now(), pendulum.today())
     DateTime.now()  # basic check
+
+
+def test_type():
+    """Checking that returned object is of type DateTime,
+    not pendulum.DateTime
+    """
+    d = DateTime.now()
+    assert_equal(type(d), DateTime)
+
+    d = DateTime(entity=NYSE, tzinfo=NYSE.tz)
+    assert_equal(type(d), DateTime)
 
 
 if __name__ == '__main__':
