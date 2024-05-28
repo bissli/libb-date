@@ -451,8 +451,10 @@ class PendulumBusinessDateMixin:
         return self in self._entity.business_days()
 
     @expect_date
-    def business_hours(self):
+    def business_hours(self) -> 'tuple[DateTime, DateTime]':
         """Business hours
+
+        Returns (None, None) if not a business day
 
         >>> thedate = Date(2023, 1, 5)
         >>> thedate.business_hours()
@@ -466,12 +468,12 @@ class PendulumBusinessDateMixin:
         >>> thedate.business_hours()
         (... 9, 30, ... 13, 0, ...)
 
-        >>> thedate = Date(2023, 11, 25)
+        >>> thedate = Date(2024, 5, 27) # memorial day
         >>> thedate.business_hours()
-        ()
+        (None, None)
         """
         return self._entity.business_hours(self, self)\
-            .get(self, ())
+            .get(self, (None, None))
 
     @store_both
     def _business_next(self, days=0):
@@ -542,17 +544,12 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         >>> d._business
         False
 
-        >>> d = Date(None)
-        >>> assert d == pendulum.today().date()
-
-        >>> d = Date()
-        >>> assert d == pendulum.today().date()
         """
         this = None
         if len(args) == 0:
             this = date_to_tuple(pendulum.today().date())
         if args and isinstance(args[0], str):
-            return Date.parse(*args, **kwargs)
+            return cls.parse(*args, **kwargs)
         if args and isinstance(args[0], bytes):
             this = date_to_tuple(datetime.date(args[0]))
         if len(args) == 1 and isinstance(args[0], datetime.date):
@@ -562,8 +559,7 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         if len(args) == 3:
             this = args[0], args[1], args[2]
         if this is not None:
-            self = super(pendulum.Date, cls).__new__(cls, *this, **kwargs)
-            return self
+            return super(cls._pendulum, cls).__new__(cls, *this, **kwargs)
         raise ValueError(f'Incompatible arguments for Date: {args}')
 
     def to_string(self, fmt: str) -> str:
@@ -965,6 +961,8 @@ def today():
 
 class Time(pendulum.Time):
 
+    _pendulum = pendulum.Time
+
     @expect_time
     def __new__(cls, *args, **kwargs):
         """
@@ -973,19 +971,14 @@ class Time(pendulum.Time):
         >>> Time('12:30:01 AM')
         Time(12, 30, 1, tzinfo=Timezone('UTC'))
 
-        >>> d = Time(None).replace(microsecond=0)
-        >>> assert d == pendulum.now().time().replace(microsecond=0)
-
-        >>> d = Time().replace(microsecond=0)
-        >>> assert d == pendulum.now().time().replace(microsecond=0)
         """
         this = None
         if args and isinstance(args[0], str):
-            return Time.parse(*args, **kwargs)
+            return cls.parse(*args, **kwargs)
         if len(args) == 0:
-            return pendulum.now().time().replace(tzinfo=LCL)
+            return DateTime.now().time().replace(tzinfo=LCL)
         if len(args) == 1 and args[0] is None:
-            return pendulum.now().time().replace(tzinfo=LCL)
+            return DateTime.now().time().replace(tzinfo=LCL)
         if len(args) == 1 and isinstance(args[0], datetime.time | datetime.datetime):
             this = time_to_dict(args[0])
         if len(args) >= 2:
@@ -994,7 +987,7 @@ class Time(pendulum.Time):
             tzinfo = _get_tzinfo(*args, **kwargs)
             kwargs = {**kwargs, **this, 'tzinfo': tzinfo or UTC}
             this = []
-            return super(pendulum.Time, cls).__new__(cls, *this, **kwargs)
+            return super(cls._pendulum, cls).__new__(cls, *this, **kwargs)
         raise ValueError(f'Incompatible arguments for DateTime: {args}')
 
     @staticmethod
@@ -1156,30 +1149,25 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         >>> DateTime(Time(4, 4, 21))
         DateTime(..., 4, 4, 21, tzinfo=Timezone('UTC'))
 
-        >>> d = DateTime(None).replace(microsecond=0)
-        >>> assert d == pendulum.now().replace(microsecond=0)
-
-        >>> d = DateTime().replace(microsecond=0)
-        >>> assert d == pendulum.now().replace(microsecond=0)
         """
         this = None
         if args and isinstance(args[0], str):
             return DateTime.parse(*args, **kwargs)
         if len(args) == 0:
-            return super(pendulum.DateTime, cls).now()
+            return cls.now()
         if len(args) == 1 and args[0] is None:
-            return super(pendulum.DateTime, cls).now()
+            return cls.now()
         if len(args) == 1 and isinstance(args[0], datetime.datetime):
             this = datetime_to_dict(args[0])
         if len(args) == 1 and isinstance(args[0], datetime.time):
-            return DateTime.combine(Date.today(), args[0], kwargs.get('tzinfo'))
+            return cls.combine(Date.today(), args[0], kwargs.get('tzinfo'))
         if len(args) >= 3:
             this = datetime_to_dict(*args)
         if this is not None:
             tzinfo = _get_tzinfo(*args, **kwargs)
             kwargs = {**kwargs, **this, 'tzinfo': tzinfo or LCL}
             this = []
-            return super(pendulum.DateTime, cls).__new__(cls, *this, **kwargs)
+            return super(cls._pendulum, cls).__new__(cls, *this, **kwargs)
         raise ValueError(f'Incompatible arguments for DateTime: {args}')
 
     def epoch(self):

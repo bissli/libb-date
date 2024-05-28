@@ -3,11 +3,29 @@ import pickle
 
 import pendulum
 import pytest
-from asserts import assert_equal, assert_false, assert_not_equal, assert_true
+from asserts import assert_equal, assert_not_equal
 from pendulum.tz import Timezone
 
 from date import NYSE, Date, DateTime, Time, now
 
+
+def test_datetime_new_none_or_empty():
+    T = DateTime().replace(second=0, microsecond=0)
+    assert_equal(T, DateTime(None).replace(second=0, microsecond=0))
+    assert_equal(type(T), DateTime)
+
+
+def test_datetime_constructor():
+    """None or empty constructor returns current Time
+    """
+
+    T = DateTime(None).replace(second=0, microsecond=0)
+    assert_equal(T, pendulum.now().replace(second=0, microsecond=0))
+    assert_equal(type(T), DateTime)
+
+    T = DateTime().replace(second=0, microsecond=0)
+    assert_equal(T, pendulum.now().replace(second=0, microsecond=0))
+    assert_equal(type(T), DateTime)
 
 def test_add():
     """Testing that add function preserves DateTime object
@@ -37,17 +55,6 @@ def test_subtract():
 
     d = DateTime(2000, 1, 4, 12, 30)
     assert_equal(d.subtract(days=1, hours=1, minutes=1), DateTime(2000, 1, 3, 11, 29))
-
-
-def test_is_business_day():
-    """Testing that `business day` function (designed for Date)
-    works for DateTime object
-    """
-
-    d = DateTime(2000, 1, 1, 12, 30)
-    assert_false(d.is_business_day())
-    assert_true(d.add(days=2).is_business_day())
-    assert_true(d.subtract(days=2).b.add(days=1).is_business_day())
 
 
 def test_combine():

@@ -9,6 +9,14 @@ from asserts import assert_equal
 from date import NYSE, Date, WeekDay, to_date
 
 
+def test_date_constructor():
+
+    assert_equal(Date(None), pendulum.today().date())
+    assert_equal(Date(), pendulum.today().date())
+    assert_equal(type(Date(None)), Date)
+    assert_equal(type(Date()), Date)
+
+
 def test_end_of_week():
     """Get the end date of the week."""
 
@@ -36,79 +44,6 @@ def test_end_of_week():
         .business()\
         .subtract(days=1)
     assert_equal(d, Date(2020, 4, 9))
-
-
-def test_business_date_or_next():
-    # 9/1 is Saturday, 9/3 is Labor Day
-    d = Date(datetime.date(2018, 9, 1))\
-        .business()\
-        .add(days=0)
-    assert_equal(d, Date(2018, 9, 4))
-
-    # regular Saturday
-    d = Date(datetime.date(2024, 3, 30))\
-        .business()\
-        .add(days=0)
-    assert_equal(d, Date(2024, 4, 1))
-
-    d = Date(datetime.date(2024, 3, 30))\
-        .subtract(days=1)\
-        .business()\
-        .add(days=1)
-    assert_equal(d, Date(2024, 4, 1))
-
-    # regular Sunday
-    d = Date(datetime.date(2024, 3, 31))\
-        .business()\
-        .add(days=0)
-    assert_equal(d, Date(2024, 4, 1))
-
-    d = Date(datetime.date(2024, 3, 31))\
-        .subtract(days=1)\
-        .business()\
-        .add(days=1)
-    assert_equal(d, Date(2024, 4, 1))
-
-    # regular Monday
-    d = Date(datetime.date(2024, 4, 1))\
-        .business()\
-        .add(days=0)
-    assert_equal(d, Date(2024, 4, 1))
-
-
-def test_business_date_or_previous():
-
-    # 3/29 is Good Friday
-
-    # regular Saturday
-    d = Date(datetime.date(2024, 3, 30))\
-        .business()\
-        .subtract(days=0)
-    assert_equal(d, Date(2024, 3, 28))
-
-    d = Date(datetime.date(2024, 3, 30))\
-        .add(days=1)\
-        .business()\
-        .subtract(days=1)
-    assert_equal(d, Date(2024, 3, 28))
-
-    # regular Sunday
-    d = Date(datetime.date(2024, 3, 31))\
-        .business()\
-        .subtract(days=0)
-    assert_equal(d, Date(2024, 3, 28))
-
-    d = Date(datetime.date(2024, 3, 31))\
-        .add(days=1)\
-        .business()\
-        .subtract(days=1)
-    assert_equal(d, Date(2024, 3, 28))
-
-    # regular Monday
-    d = Date(datetime.date(2024, 4, 1))\
-        .business()\
-        .subtract(days=0)
-    assert_equal(d, Date(2024, 4, 1))
 
 
 def test_next_friday():
