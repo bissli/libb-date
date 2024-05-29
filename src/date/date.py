@@ -1179,8 +1179,11 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
     def now(cls, tz=LCL):
         return cls(pendulum.now(tz))
 
-    def today(self):
-        return Date(self.year, self.month, self.day)
+    @classmethod
+    def today(cls):
+        """Unlike Pendulum, returns DateTime object at start of day
+        """
+        return DateTime.now().start_of('day')
 
     def date(self):
         return Date(self.year, self.month, self.day)

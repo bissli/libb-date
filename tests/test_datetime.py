@@ -1,5 +1,6 @@
 import copy
 import pickle
+from unittest import mock
 
 import pendulum
 import pytest
@@ -26,6 +27,7 @@ def test_datetime_constructor():
     T = DateTime().replace(second=0, microsecond=0)
     assert_equal(T, pendulum.now().replace(second=0, microsecond=0))
     assert_equal(type(T), DateTime)
+
 
 def test_add():
     """Testing that add function preserves DateTime object
@@ -104,6 +106,13 @@ def test_now():
     """
     assert_not_equal(now(), pendulum.today())
     DateTime.now()  # basic check
+
+
+@mock.patch('date.DateTime.now')
+def test_today(mock):
+    mock.return_value = DateTime(2020, 1, 1, 12, 30)
+    D = DateTime.today()
+    assert_equal(D, DateTime(2020, 1, 1, 0, 0))
 
 
 def test_type():
