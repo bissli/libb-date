@@ -1731,7 +1731,7 @@ for func in ('closest', 'farthest', 'nth_of', 'average', 'fromtimestamp',
 
 # apply any missing DateTime functions
 for func in ('astimezone', 'fromordinal', 'in_timezone', 'in_tz', 'instance',
-             'replace', 'strptime', 'utcfromtimestamp', 'utcnow'):
+             'replace', 'strptime', 'utcfromtimestamp', 'fromtimestamp', 'utcnow'):
     setattr(DateTime, func, store_entity(getattr(pendulum.DateTime, func), typ=DateTime))
 
 
