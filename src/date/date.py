@@ -1173,7 +1173,7 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
     def epoch(self):
         """Translate a datetime object into unix seconds since epoch
         """
-        return time.mktime(self.timetuple())
+        return self.timestamp()
 
     @classmethod
     def now(cls, tz=LCL):
@@ -1258,7 +1258,7 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         DateTime(2000, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
 
         Format tests
-        >>> DateTime(DateTime.parse(1707856982)).epoch()
+        >>> DateTime.parse(1707856982).replace(tzinfo=UTC).epoch()
         1707856982.0
         >>> DateTime.parse('Jan 29  2010')
         DateTime(2010, 1, 29, 0, 0, 0, tzinfo=Timezone('UTC'))
