@@ -117,12 +117,8 @@ DATEMATCH = r'^(?P<d>N|T|Y|P|M)(?P<n>[-+]?\d+)?(?P<b>b?)?$'
     # return entity
 
 
-def is_dateish(x):
-    return x.__class__ in {datetime.date, pendulum.Date, Date}
-
-
-def is_datetimeish(x):
-    return x.__class__ in {datetime.datetime, pendulum.DateTime, DateTime}
+def isdateish(x):
+    return isinstance(x, datetime.date | datetime.datetime | pd.Timestamp | np.datetime64)
 
 
 def expect(func, typ: type[datetime.date], exclkw: bool = False) -> Callable:
@@ -132,19 +128,19 @@ def expect(func, typ: type[datetime.date], exclkw: bool = False) -> Callable:
     def wrapper(*args, **kwargs):
         args = list(args)
         for i, arg in enumerate(args):
-            if isinstance(arg, datetime.date | datetime.datetime):
-                if typ == datetime.datetime and not is_datetimeish(arg):
+            if isdateish(arg):
+                if typ == datetime.datetime:
                     args[i] = DateTime.parse(arg)
                     continue
-                if typ == datetime.date and not is_dateish(arg):
+                if typ == datetime.date:
                     args[i] = Date.parse(arg)
         if not exclkw:
             for k, v in kwargs.items():
-                if isinstance(v, datetime.date | datetime.datetime):
-                    if typ == datetime.datetime and not is_datetimeish(v):
+                if isdateish(v):
+                    if typ == datetime.datetime:
                         kwargs[k] = DateTime.parse(v)
                         continue
-                    if typ == datetime.date and not is_dateish(v):
+                    if typ == datetime.date:
                         kwargs[k] = Date.parse(v)
         return func(*args, **kwargs)
     return wrapper
@@ -543,6 +539,12 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         Date(2022, 1, 1)
         >>> d._business
         False
+        >>> Date(datetime.date(2022, 1, 1))
+        Date(2022, 1, 1)
+        >>> Date(pendulum.Date(2022, 1, 1))
+        Date(2022, 1, 1)
+        >>> Date(Date(2022, 1, 1))
+        Date(2022, 1, 1)
 
         """
         this = None
@@ -970,6 +972,12 @@ class Time(pendulum.Time):
         Time(12, 30, 1, tzinfo=Timezone('UTC'))
         >>> Time('12:30:01 AM')
         Time(12, 30, 1, tzinfo=Timezone('UTC'))
+        >>> Time(datetime.time(12, 30, 1))
+        Time(12, 30, 1, tzinfo=Timezone('UTC'))
+        >>> Time(pendulum.Time(12, 30, 1))
+        Time(12, 30, 1, tzinfo=Timezone('UTC'))
+        >>> Time(Time(12, 30, 1))
+        Time(12, 30, 1, tzinfo=Timezone('UTC'))
 
         """
         this = None
@@ -1148,6 +1156,12 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
         >>> DateTime(Time(4, 4, 21))
         DateTime(..., 4, 4, 21, tzinfo=Timezone('UTC'))
+        >>> DateTime(datetime.datetime(2022, 1, 1, 0, 0, 0))
+        DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
+        >>> DateTime(pendulum.DateTime(2022, 1, 1, 0, 0, 0))
+        DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
+        >>> DateTime(DateTime(2022, 1, 1, 0, 0, 0))
+        DateTime(2022, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
 
         """
         this = None
@@ -1242,7 +1256,7 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         This is actually 18:55 UTC with -4 hours applied = EST
         >>> this_est2 = DateTime.parse('Fri, 31 Oct 2014 14:55:00 -0400')
         >>> this_est2
-        DateTime(2014, 10, 31, 14, 55, 0, tzinfo=FixedTimezone(-14400, name="-04:00"))
+        DateTime(2014, 10, 31, 14, 55, 0, tzinfo=Timezone('America/New_York'))
 
         UTC time technically equals GMT
         >>> this_utc = DateTime.parse('Fri, 31 Oct 2014 18:55:00 GMT')
@@ -1284,7 +1298,8 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
             iso = datetime.datetime.fromtimestamp(s).isoformat()
             return cls.parse(iso).replace(tzinfo=LCL)
         if isinstance(s, datetime.datetime):
-            return cls(s)
+            return cls(s.year, s.month, s.day, s.hour, s.minute, s.second,
+                       s.microsecond, s.tzinfo)
         if isinstance(s, datetime.date):
             logger.debug('Forced date without time to datetime')
             return cls(s.year, s.month, s.day, tzinfo=LCL)
