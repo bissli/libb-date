@@ -7,7 +7,7 @@ import pytest
 from asserts import assert_equal, assert_not_equal
 from pendulum.tz import Timezone
 
-from date import NYSE, Date, DateTime, Time, now
+from date import NYSE, Date, DateTime, Time, expect_datetime, now
 
 
 def test_datetime_new_none_or_empty():
@@ -124,6 +124,20 @@ def test_type():
 
     d = DateTime(entity=NYSE, tzinfo=NYSE.tz)
     assert_equal(type(d), DateTime)
+
+
+def test_expects():
+
+    @expect_datetime
+    def func(args):
+        return args
+
+    p = pendulum.DateTime(2022, 1, 1)
+    d = DateTime(2022, 1, 1)
+
+    assert_equal(func(p), d)
+    assert_equal(func((p, p)), [d, d])
+    assert_equal(func(((p, p), p)), [[d, d], d])
 
 
 if __name__ == '__main__':

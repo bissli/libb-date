@@ -6,7 +6,7 @@ import pendulum
 import pytest
 from asserts import assert_equal
 
-from date import NYSE, Date, WeekDay, to_date
+from date import NYSE, Date, WeekDay, expect_date, to_date
 
 
 def test_date_constructor():
@@ -328,6 +328,22 @@ def test_pickle():
         d_ = pickle.load(f)
 
     assert_equal(d, d_)
+
+
+def test_expects():
+
+    @expect_date
+    def func(args):
+        return args
+
+    p = pendulum.Date(2022, 1, 1)
+    d = Date(2022, 1, 1)
+    df = pd.DataFrame([['foo', 1], ['bar', 2]], columns=['name', 'value'])
+
+    assert_equal(func(p), d)
+    assert_equal(func((p, p)), [d, d])
+    assert_equal(func(((p, p), p)), [[d, d], d])
+    assert_true(isinstance(func((df, p))[0], pd.DataFrame))
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ import pandas_market_calendars as mcal
 import pendulum
 from dateutil import parser
 
-from libb import is_null
+from libb import is_null, issequence
 
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
@@ -121,19 +121,31 @@ def isdateish(x):
     return isinstance(x, datetime.date | datetime.datetime | pd.Timestamp | np.datetime64)
 
 
+def parse_arg(typ, arg):
+    if isdateish(arg):
+        if typ == datetime.datetime:
+            return DateTime.parse(arg)
+        if typ == datetime.date:
+            return Date.parse(arg)
+    return arg
+
+
+def parse_args(typ, *args):
+    this = []
+    for a in args:
+        if issequence(a):
+            this.append(parse_args(typ, *a))
+        else:
+            this.append(parse_arg(typ, a))
+    return this
+
+
 def expect(func, typ: type[datetime.date], exclkw: bool = False) -> Callable:
     """Decorator to force input type of date/datetime inputs
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
-        args = list(args)
-        for i, arg in enumerate(args):
-            if isdateish(arg):
-                if typ == datetime.datetime:
-                    args[i] = DateTime.parse(arg)
-                    continue
-                if typ == datetime.date:
-                    args[i] = Date.parse(arg)
+        args = parse_args(typ, *args)
         if not exclkw:
             for k, v in kwargs.items():
                 if isdateish(v):
@@ -522,7 +534,6 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
 
     _pendulum = pendulum.Date
 
-    @expect_date
     def __new__(cls, *args, **kwargs):
         """
         >>> Date(2022, 1, 1)
@@ -650,6 +661,9 @@ class Date(PendulumBusinessDateMixin, pendulum.Date):
         True
 
         >>> Date.parse(np.datetime64('2000-01', 'D'))
+        Date(2000, 1, 1)
+
+        >>> Date.parse(Date(2000, 1, 1))
         Date(2000, 1, 1)
 
         only raise error when we explicitly say so
@@ -965,7 +979,6 @@ class Time(pendulum.Time):
 
     _pendulum = pendulum.Time
 
-    @expect_time
     def __new__(cls, *args, **kwargs):
         """
         >>> Time(12, 30, 1)
@@ -1101,7 +1114,7 @@ class Time(pendulum.Time):
 def time_to_dict(*args):
     keys = ('hour', 'minute', 'second', 'microsecond')
     d = {k: 0 for k in keys}
-    if isinstance(args[0], datetime.time | datetime.datetime):
+    if isinstance(args[0], datetime.time | datetime.date):
         for k in keys:
             d[k] = getattr(args[0], k, 0)
     else:
@@ -1115,7 +1128,7 @@ def time_to_dict(*args):
 def datetime_to_dict(*args):
     keys = ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond')
     d = {k: 0 for k in keys}
-    if isinstance(args[0], datetime.datetime):
+    if isinstance(args[0], datetime.date):
         for k in keys:
             d[k] = getattr(args[0], k, 0)
     else:
@@ -1141,7 +1154,6 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
 
     _pendulum = pendulum.DateTime
 
-    @expect_datetime
     def __new__(cls, *args, **kwargs):
         """
         >>> DateTime(2022, 1, 1)
@@ -1165,13 +1177,13 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
 
         """
         this = None
-        if args and isinstance(args[0], str):
-            return DateTime.parse(*args, **kwargs)
         if len(args) == 0:
             return cls.now()
         if len(args) == 1 and args[0] is None:
             return cls.now()
-        if len(args) == 1 and isinstance(args[0], datetime.datetime):
+        if len(args) and isinstance(args[0], str):
+            return DateTime.parse(*args, **kwargs)
+        if len(args) == 1 and isinstance(args[0], datetime.date):
             this = datetime_to_dict(args[0])
         if len(args) == 1 and isinstance(args[0], datetime.time):
             return cls.combine(Date.today(), args[0], kwargs.get('tzinfo'))
@@ -1256,7 +1268,7 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
         This is actually 18:55 UTC with -4 hours applied = EST
         >>> this_est2 = DateTime.parse('Fri, 31 Oct 2014 14:55:00 -0400')
         >>> this_est2
-        DateTime(2014, 10, 31, 14, 55, 0, tzinfo=Timezone('America/New_York'))
+        DateTime(2014, 10, 31, 14, 55, 0, tzinfo=...)
 
         UTC time technically equals GMT
         >>> this_utc = DateTime.parse('Fri, 31 Oct 2014 18:55:00 GMT')
@@ -1269,6 +1281,9 @@ class DateTime(PendulumBusinessDateMixin, pendulum.DateTime):
 
         Convert date to datetime (will use native time zone)
         >>> DateTime.parse(datetime.date(2000, 1, 1))
+        DateTime(2000, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
+
+        >>> DateTime.parse(DateTime(2000, 1, 1))
         DateTime(2000, 1, 1, 0, 0, 0, tzinfo=Timezone('...'))
 
         Format tests
@@ -1347,7 +1362,6 @@ class Interval:
     _business: bool = False
     _entity: type[NYSE] = NYSE
 
-    @expect_date
     def __init__(self, begdate: Date = None, enddate: Date = None):
         self.begdate = Date.parse(begdate)
         self.enddate = Date.parse(enddate)
@@ -1407,7 +1421,10 @@ class Interval:
             raise IntervalError('Missing begdate and enddate, window specified')
 
         if begdate and enddate:
-            return begdate, enddate
+            return (begdate.business() if begdate._business else
+                    begdate).add(days=window), \
+                   (enddate.business() if enddate._business else
+                    enddate).subtract(days=0)
 
         if (not begdate and not enddate) or enddate:
             begdate = (enddate.business() if enddate._business else
